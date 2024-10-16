@@ -10,6 +10,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.3.0",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.33",
     "solid-devtools": "^0.29.2",
@@ -19,6 +20,7 @@
     "vite-plugin-solid": "^2.8.2"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "solid-js": "^1.8.11"
   }
 }
