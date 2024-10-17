@@ -29,7 +29,11 @@ const AGENT_SPEECH_TIMEOUT = 250;
 
 type BarHeights = [number, number, number];
 
-const VoiceChatWidget = (props: { agentId: string }) => {
+export type VoiceChatWidgetProps = {
+  agentId: string;
+};
+
+const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   const [agentData, setAgentData] = createSignal<AgentData | null>(null);
   const [agentState, setAgentState] = createSignal<AgentState>(
     AgentState.THINKING
