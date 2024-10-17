@@ -351,7 +351,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     stopRecording();
   };
 
-  if (!dataFetched) return <></>;
+  if (!dataFetched()) return <></>;
 
   return (
     <>
