@@ -48,6 +48,8 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   const [minimizedBarHeights, setMinimizedBarHeights] =
     createSignal<BarHeights>([0, 0, 0]);
 
+  const [dataFetched, setDataFetched] = createSignal(false);
+
   let mediaRecorder: MediaRecorder | null = null;
   let socket: WebSocket | null = null;
   let audioElement: HTMLAudioElement | null = null;
@@ -62,6 +64,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       }
       const data = await response.json();
       setAgentData(data);
+      setDataFetched(true);
     } catch (error) {
       console.error("Error fetching agent data:", error);
     }
@@ -347,6 +350,8 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     disconnectWebSocket();
     stopRecording();
   };
+
+  if (!dataFetched) return <></>;
 
   return (
     <>
