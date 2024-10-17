@@ -9,7 +9,7 @@ import tailwindcss from "tailwindcss";
 const extensions = [".ts", ".tsx"];
 
 export default {
-  input: "./src/index.tsx",
+  input: "./src/bundleWidget.tsx",
   output: {
     file: "dist/widget.mjs",
     format: "es",
@@ -32,11 +32,10 @@ export default {
           content: ["./src/**/*.tsx"],
         }),
       ],
-      extract: false,
-      modules: false,
-      autoModules: false,
+      extract: true,
+      modules: true,
       minimize: true,
-      inject: false,
+      inject: true,
     }),
     terser({ output: { comments: false } }),
     {
@@ -53,11 +52,13 @@ export default {
               const scripts = document.getElementsByTagName('script');
               let agentId = 'default-agent-id';
               for (let i = 0; i < scripts.length; i++) {
-                if (scripts[i].src.includes('widget.mjs')) {
+                if (scripts[i].getAttribute('data-script-id') === 'repnai-voice-chat-widget') {
                   agentId = scripts[i].getAttribute('data-agent-id') || agentId;
                   break;
                 }
               }
+
+              console.log(agentId);
               const widget = document.createElement('voice-chat-widget');
               widget.setAttribute('agent-id', agentId);
               document.body.appendChild(widget);
@@ -69,7 +70,7 @@ export default {
               loadWidget();
             }
           })();
-          `;
+        `;
       },
     },
   ],

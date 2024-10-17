@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { createSignal, createEffect, onCleanup, JSX, For } from "solid-js";
 import { render } from "solid-js/web";
+import styles from "./VoiceChatWidget.styles";
 
 // Type definitions
 type AgentData = {
@@ -348,166 +349,131 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   };
 
   return (
-    <div
-      id="voice-chat-widget"
-      class="fixed bottom-5 right-5 font-sans z-[10000]"
-    >
-      <button
-        id="widget-toggle"
-        onClick={toggleWidget}
-        class={clsx(
-          "border-none text-white p-0 text-center no-underline inline-block text-base m-1 cursor-pointer rounded-full w-20 h-20 overflow-hidden shadow-lg",
-          isWidgetOpen() ? "hidden" : "inline-block"
-        )}
-      >
-        <img
-          id="widget-toggle-img"
-          src={agentData()?.avatarUrl}
-          alt={agentData()?.displayName}
-          class="w-full h-full object-cover rounded-full"
-        />
-      </button>
-
-      <div
-        id="widget-content"
-        class={clsx(
-          `bg-gradient-to-b from-gray-100 via-gray-100 to-blue-500 p-5 mb-[50px] w-[200px] h-[350px] shadow-md border border-gray-300 flex-col items-center rounded-[20px] transition-all duration-300 ease-in-out transform scale-0 opacity-0`,
-          isWidgetOpen()
-            ? "scale-100 opacity-100 flex"
-            : "scale-0 opacity-0 hidden",
-          isMinimized() ? "hidden scale-0 opacity-0" : ""
-        )}
-      >
-        <div
-          id="widget-content-header"
-          class="flex justify-between items-center w-full mb-[30px]"
-        >
-          <p class="name text-blue-500 m-0 text-3xl">
-            {agentData()?.displayName}
-          </p>
-          <button
-            id="book-appointment-button"
-            onClick={() => {
-              /* Implement Calendly logic */
-            }}
-            class="p-[3px] bg-white border-none cursor-pointer rounded-[10px] shadow-md"
-          >
-            {/* SVG icon for booking */}
-          </button>
-        </div>
-        <img
-          src={agentData()?.avatarUrl}
-          alt={agentData()?.displayName}
-          id="avatar-image"
-          class="w-[140px] h-[140px] object-cover rounded-full shadow-md mb-5"
-        />
-        <div
-          id="voice-animation"
-          class="voice-animation flex items-center justify-center h-[50px] bg-white rounded-[25px] p-[10px] shadow-md w-full"
-        >
-          <For each={barHeights()}>
-            {(height, index) => (
-              <div
-                class="bar bg-[#52467b] bottom-[1px] h-[8px] w-[8px] mx-[2px] rounded-[5px] transition-all duration-300 ease-in-out max-h-full min-h-[8px]"
-                style={{ height: `${height}%` }}
-              ></div>
-            )}
-          </For>
-        </div>
-        <p
-          id="powered-by-text"
-          class="text-white text-sm text-center mt-auto mb-0"
-        >
-          Powered by RepnAI
-        </p>
-      </div>
-
-      <div
-        id="floating-buttons"
-        class={clsx(
-          "absolute bottom-[5px] right-[10px] gap-[10px] transition-all duration-300 ease-in-out transform opacity-0",
-          isWidgetOpen()
-            ? "flex opacity-100 translate-y-0"
-            : "hidden opacity-0 translate-y-full"
-        )}
-      >
+    <>
+      <style>{styles}</style>
+      <div id="voice-chat-widget">
         <button
-          id="minimize-button"
-          onClick={minimizeWidget}
-          class={clsx(
-            "p-[10px] bg-white border border-black cursor-pointer rounded-full shadow-md w-[40px] h-[40px] flex justify-center items-center transition-all duration-300 ease-in-out",
-            isMinimized() ? "w-[150px] justify-between " : "w-[40px] h-[40px]"
-          )}
+          id="widget-toggle"
+          onClick={toggleWidget}
+          style={{ display: isWidgetOpen() ? "none" : "inline-block" }}
         >
-          <div
-            id="minimized-speech-bubble"
-            class={clsx(
-              "items-center h-[30px]",
-              isMinimized() ? "flex " : "hidden"
-            )}
-          >
-            <For each={minimizedBarHeights()}>
+          <img
+            id="widget-toggle-img"
+            src={agentData()?.avatarUrl}
+            alt={agentData()?.displayName}
+          />
+        </button>
+
+        <div
+          id="widget-content"
+          style={{
+            transform:
+              isWidgetOpen() && !isMinimized() ? "scale(1)" : "scale(0)",
+            opacity: isWidgetOpen() && !isMinimized() ? "1" : "0",
+            display: isWidgetOpen() && !isMinimized() ? "flex" : "none",
+          }}
+        >
+          <div id="widget-content-header">
+            <p class="name">{agentData()?.displayName}</p>
+            <button
+              id="book-appointment-button"
+              onClick={() => {
+                /* Implement Calendly logic */
+              }}
+            >
+              {/* SVG icon for booking */}
+            </button>
+          </div>
+          <img
+            src={agentData()?.avatarUrl}
+            alt={agentData()?.displayName}
+            id="avatar-image"
+          />
+          <div id="voice-animation">
+            <For each={barHeights()}>
               {(height, index) => (
-                <div
-                  class="minimized-bar bg-black h-[3px] w-[3px] mx-[2px] rounded-[5px] min-h-[3px] max-h-full"
-                  style={{ height: `${height}%` }}
-                ></div>
+                <div class="bar" style={{ height: `${height}%` }}></div>
               )}
             </For>
           </div>
-          <p
-            id="speaking-summary"
-            class={clsx(
-              "text-black text-sm",
-              isMinimized() ? "block" : "hidden"
-            )}
-          >
-            {agentData()?.displayName}
-          </p>
-          <svg
-            class={clsx(
-              "transition-all duration-300 ease-in-out",
-              isMinimized() ? "rotate-180" : "rotate-0"
-            )}
-            id="minimize-icon"
-            width="18"
-            height="32"
-            viewBox="0 0 32 32"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M5.33317 12L15.9998 22.6667L26.6665 12"
-              stroke="black"
-              stroke-width="3"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </button>
-        <button
-          id="close-button"
-          onClick={closeWidget}
-          class="p-[10px] bg-white border border-black cursor-pointer rounded-full shadow-md w-[40px] h-[40px] flex justify-center items-center transition-all duration-300 ease-in-out"
+          <p id="powered-by-text">Powered by RepnAI</p>
+        </div>
+
+        <div
+          id="floating-buttons"
+          style={{
+            transform: isWidgetOpen() ? "scale(1)" : "scale(0)",
+            opacity: isWidgetOpen() ? "1" : "0",
+            display: isWidgetOpen() ? "flex" : "none",
+          }}
         >
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 32 32"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+          <button
+            id="minimize-button"
+            onClick={minimizeWidget}
+            style={{
+              width: isMinimized() ? "150px" : "40px",
+              "justify-content": isMinimized() ? "space-between" : "center",
+            }}
           >
-            <path
-              d="M25.3332 6.66666L6.6665 25.3333M6.66652 6.66666L25.3332 25.3333"
-              stroke="black"
-              stroke-width="3"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </button>
+            <div
+              id="minimized-speech-bubble"
+              style={{ display: isMinimized() ? "flex" : "none" }}
+            >
+              <For each={minimizedBarHeights()}>
+                {(height, index) => (
+                  <div
+                    class="minimized-bar"
+                    style={{ height: `${height}%` }}
+                  ></div>
+                )}
+              </For>
+            </div>
+            <p
+              id="speaking-summary"
+              style={{ display: isMinimized() ? "block" : "none" }}
+            >
+              {agentData()?.displayName}
+            </p>
+            <svg
+              id="minimize-icon"
+              style={{
+                transform: isMinimized() ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+              width="18"
+              height="32"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M5.33317 12L15.9998 22.6667L26.6665 12"
+                stroke="black"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <button id="close-button" onClick={closeWidget}>
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M25.3332 6.66666L6.6665 25.3333M6.66652 6.66666L25.3332 25.3333"
+                stroke="black"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
