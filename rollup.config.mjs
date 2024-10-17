@@ -39,5 +39,38 @@ export default {
       inject: false,
     }),
     terser({ output: { comments: false } }),
+    {
+      name: "inject-widget-loader",
+      generateBundle(options, bundle) {
+        const fileName = Object.keys(bundle)[0];
+        const code = bundle[fileName].code;
+        bundle[fileName].code = `
+          ${code}
+          
+          // Automatically append the widget to the document
+          (function() {
+            function loadWidget() {
+              const scripts = document.getElementsByTagName('script');
+              let agentId = 'default-agent-id';
+              for (let i = 0; i < scripts.length; i++) {
+                if (scripts[i].src.includes('widget.mjs')) {
+                  agentId = scripts[i].getAttribute('data-agent-id') || agentId;
+                  break;
+                }
+              }
+              const widget = document.createElement('voice-chat-widget');
+              widget.setAttribute('agent-id', agentId);
+              document.body.appendChild(widget);
+            }
+      
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', loadWidget);
+            } else {
+              loadWidget();
+            }
+          })();
+          `;
+      },
+    },
   ],
 };
