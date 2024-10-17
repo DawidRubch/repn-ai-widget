@@ -12,3 +12,5 @@ function getInitialProps(): VoiceChatWidgetProps {
     agentId: "1",
   };
 }
+
+registerWebComponents();
