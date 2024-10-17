@@ -125,7 +125,7 @@ const VoiceChatWidget = (props: { agentId: string }) => {
 
     socket.onopen = () => {
       console.log("WebSocket connected");
-      setupAudioStream();
+      setupAudioStream(socket);
     };
 
     socket.onclose = () => {
@@ -157,13 +157,13 @@ const VoiceChatWidget = (props: { agentId: string }) => {
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
+      reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
   };
 
-  const setupAudioStream = () => {
+  const setupAudioStream = (socket: WebSocket) => {
     let mediaSource = new MediaSource();
     let audioElement = new Audio();
     let sourceBuffer: SourceBuffer | null = null;
@@ -220,6 +220,91 @@ const VoiceChatWidget = (props: { agentId: string }) => {
     source.connect(analyser);
     analyser.connect(audioContext.destination);
 
+    mediaSource.onsourceopen = () => {
+      sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+
+      sourceBuffer.onupdateend = () => {
+        isAppending = false;
+        appendNextBuffer();
+      };
+
+      socket.onmessage = async (event) => {
+        if (event.data instanceof Blob) {
+          const arrayBuffer = await event.data.arrayBuffer();
+          queue.push(arrayBuffer);
+          appendNextBuffer();
+        } else {
+          const data = JSON.parse(event.data);
+          if (data.type === "voiceActivityStart") {
+            console.log("voiceActivityStart");
+            setAgentState(AgentState.LISTENING);
+            audioElement.currentTime = 0;
+            queue = [];
+            if (sourceBuffer && !sourceBuffer.updating) {
+              sourceBuffer.abort();
+            }
+
+            mediaSource.endOfStream();
+            mediaSource = new MediaSource();
+
+            audioElement.src = URL.createObjectURL(mediaSource);
+
+            mediaSource.onsourceopen = () => {
+              sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+              sourceBuffer.onupdateend = () => {
+                isAppending = false;
+                appendNextBuffer();
+              };
+            };
+          }
+
+          if (data.type === "voiceActivityEnd") {
+            console.log("voiceActivityEnd");
+            setAgentState(AgentState.THINKING);
+          }
+
+          if (data.type === "newAudioStream") {
+            console.log("newAudioStream");
+            queue = [];
+          }
+        }
+      };
+    };
+
+    const appendNextBuffer = () => {
+      if (
+        !sourceBuffer ||
+        isAppending ||
+        queue.length === 0 ||
+        sourceBuffer.updating
+      ) {
+        return;
+      }
+
+      isAppending = true;
+      const nextBuffer = queue.shift();
+      if (nextBuffer) {
+        sourceBuffer.appendBuffer(nextBuffer);
+      }
+    };
+
+    audioElement.src = URL.createObjectURL(mediaSource);
+
+    audioElement.oncanplay = () => {
+      console.log("Audio can play");
+      setAgentState(AgentState.SPEAKING);
+      audioElement
+        .play()
+        .catch((error) => console.error("Error playing audio:", error));
+    };
+
+    audioElement.onended = () => {
+      console.log("Audio ended");
+    };
+
+    audioElement.onpause = () => {
+      console.log("Audio paused");
+    };
     // Cleanup function
     onCleanup(() => {
       clearInterval(checkAudioActivity);
