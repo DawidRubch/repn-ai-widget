@@ -1,4 +1,3 @@
-import clsx from "clsx";
 import {
   createSignal,
   createEffect,
@@ -11,11 +10,19 @@ import {
 import { render } from "solid-js/web";
 import styles from "./VoiceChatWidget.styles";
 
+declare global {
+  interface Window {
+    Calendly: any;
+  }
+}
+
 // Type definitions
 type AgentData = {
   avatarUrl: string;
   displayName: string;
   introMessage: string;
+  calendlyUrl: string | null;
+  position: "right" | "left" | "center";
 };
 
 enum MicrophoneState {
@@ -33,8 +40,8 @@ enum AgentState {
   THINKING = "thinking",
 }
 
-const API_URL = "https://repn-voice-api.fly.dev";
-const WEBSOCKET_URL = `wss://repn-voice-api.fly.dev/talk`;
+const API_URL = "http://localhost:3001";
+const WEBSOCKET_URL = `ws://localhost:3001/talk`;
 
 type BarHeights = [number, number, number];
 
@@ -358,8 +365,24 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     stopRecording();
   };
 
+  const handleCalendlyClick = () => {
+    if (agentData().calendlyUrl) {
+      window.Calendly.initInlineWidget({
+        url: agentData()?.calendlyUrl,
+      });
+    }
+  };
+
   return (
     <Show when={dataFetched()} fallback={<></>}>
+      <Show when={agentData()?.calendlyUrl} fallback={<></>}>
+        <script
+          src="https://assets.calendly.com/assets/external/widget.js"
+          type="text/javascript"
+          async
+        ></script>
+      </Show>
+
       <style>{styles}</style>
       <div id="voice-chat-widget">
         <button
@@ -385,12 +408,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
         >
           <div id="widget-content-header">
             <p class="name">{agentData()?.displayName}</p>
-            <button
-              id="book-appointment-button"
-              onClick={() => {
-                /* Implement Calendly logic */
-              }}
-            >
+            <button id="book-appointment-button" onClick={handleCalendlyClick}>
               {/* SVG icon for booking */}
             </button>
           </div>
