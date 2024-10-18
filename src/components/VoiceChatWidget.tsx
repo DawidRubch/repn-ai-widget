@@ -34,7 +34,7 @@ enum AgentState {
 }
 
 const API_URL = "https://repn-voice-api.fly.dev";
-const AGENT_SPEECH_TIMEOUT = 250;
+const WEBSOCKET_URL = `wss://repn-voice-api.fly.dev/talk`;
 
 type BarHeights = [number, number, number];
 
@@ -64,9 +64,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
   const fetchAgentData = async () => {
     try {
-      const response = await fetch(
-        `https://repn-voice-api.fly.dev/agent-data/${props.agentId}`
-      );
+      const response = await fetch(`${API_URL}/agent-data/${props.agentId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch agent data");
       }
@@ -137,7 +135,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   };
 
   const initializeWebSocket = () => {
-    const wsUrl = `wss://repn-voice-api.fly.dev/talk?agentID=${props.agentId}`;
+    const wsUrl = `${WEBSOCKET_URL}?agentID=${props.agentId}`;
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
