@@ -9,7 +9,7 @@ export function registerWebComponents() {
 
 function getInitialProps(): VoiceChatWidgetProps {
   return {
-    agentId: "Dawid-txOv9KdLY7MhkpfINsBLb",
+    agentId: undefined,
   };
 }
 

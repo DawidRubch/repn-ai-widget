@@ -9,7 +9,7 @@ import tailwindcss from "tailwindcss";
 const extensions = [".ts", ".tsx"];
 
 export default {
-  input: "./src/bundleWidget.tsx",
+  input: "./src/scripts/bundleWidget.tsx",
   output: {
     file: "dist/widget.mjs",
     format: "es",
