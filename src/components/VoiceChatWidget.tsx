@@ -1,5 +1,13 @@
 import clsx from "clsx";
-import { createSignal, createEffect, onCleanup, JSX, For } from "solid-js";
+import {
+  createSignal,
+  createEffect,
+  onCleanup,
+  JSX,
+  For,
+  onMount,
+  Show,
+} from "solid-js";
 import { render } from "solid-js/web";
 import styles from "./VoiceChatWidget.styles";
 
@@ -64,6 +72,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       }
       const data = await response.json();
       setAgentData(data);
+      console.log("Agent data fetched:", data);
       setDataFetched(true);
     } catch (error) {
       console.error("Error fetching agent data:", error);
@@ -322,7 +331,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     });
   };
 
-  createEffect(() => {
+  onMount(() => {
     fetchAgentData();
   });
 
@@ -351,10 +360,8 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     stopRecording();
   };
 
-  if (!dataFetched()) return <></>;
-
   return (
-    <>
+    <Show when={dataFetched()} fallback={<></>}>
       <style>{styles}</style>
       <div id="voice-chat-widget">
         <button
@@ -478,7 +485,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
           </button>
         </div>
       </div>
-    </>
+    </Show>
   );
 };
 

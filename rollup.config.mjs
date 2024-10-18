@@ -58,7 +58,6 @@ export default {
                 }
               }
 
-              console.log(agentId);
               const widget = document.createElement('voice-chat-widget');
               widget.setAttribute('agent-id', agentId);
               document.body.appendChild(widget);

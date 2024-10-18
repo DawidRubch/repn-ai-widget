@@ -1,9 +1,10 @@
 import type { Component } from "solid-js";
+import VoiceChatWidget from "./components/VoiceChatWidget";
 
 const App: Component = () => {
   return (
     <div>
-      <h1>Hello, World!</h1>
+      <VoiceChatWidget agentId="Dawid-txOv9KdLY7MhkpfINsBLb" />
     </div>
   );
 };
