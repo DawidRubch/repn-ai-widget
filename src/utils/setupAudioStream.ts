@@ -2,18 +2,15 @@ import { onCleanup } from "solid-js";
 import { BarHeights, updateBarHeights } from "./updateBarHeights";
 import { AgentState } from "../components/VoiceChatWidget";
 
-
-
 type AudioStreamParams = {
     socket: WebSocket;
     setBarHeights: (heights: BarHeights) => void;
     setMinimizedBarHeights: (heights: BarHeights) => void;
-    setAgentState: (state: AgentState) => void;
     setSocketReady: (ready: boolean) => void;
 };
 
 export const setupAudioStream = (params: AudioStreamParams) => {
-    const { socket, setBarHeights, setMinimizedBarHeights, setAgentState, setSocketReady } = params;
+    const { socket, setBarHeights, setMinimizedBarHeights, setSocketReady } = params;
     const mediaSource = new MediaSource();
     const audioElement = new Audio();
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -31,9 +28,6 @@ export const setupAudioStream = (params: AudioStreamParams) => {
 
     const checkAudioActivity = setInterval(() => {
         if (audioElement.currentTime === 0) return;
-        if (audioElement.currentTime === audioCurrentTime) {
-            setAgentState(AgentState.LISTENING);
-        }
         audioCurrentTime = audioElement.currentTime;
     }, 150);
 
@@ -54,7 +48,6 @@ export const setupAudioStream = (params: AudioStreamParams) => {
             switch (data.type) {
                 case "voiceActivityStart":
                     console.log("voiceActivityStart");
-                    setAgentState(AgentState.LISTENING);
                     audioElement.currentTime = 0;
                     queue = [];
                     if (sourceBuffer && !sourceBuffer.updating) sourceBuffer.abort();
@@ -63,7 +56,6 @@ export const setupAudioStream = (params: AudioStreamParams) => {
                     break;
                 case "voiceActivityEnd":
                     console.log("voiceActivityEnd");
-                    setAgentState(AgentState.THINKING);
                     break;
                 case "newAudioStream":
                     console.log("newAudioStream");
@@ -92,13 +84,8 @@ export const setupAudioStream = (params: AudioStreamParams) => {
         };
 
         audioElement.oncanplay = () => {
-            console.log("Audio can play");
-            setAgentState(AgentState.SPEAKING);
             audioElement.play().catch((error) => console.error("Error playing audio:", error));
         };
-
-        audioElement.onended = () => console.log("Audio ended");
-        audioElement.onpause = () => console.log("Audio paused");
     };
 
     initializeAudio();

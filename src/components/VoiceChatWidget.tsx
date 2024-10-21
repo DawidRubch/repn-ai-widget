@@ -10,7 +10,7 @@ import {
 } from "solid-js";
 import styles from "./VoiceChatWidget.styles";
 import { updateBarHeights } from "../utils/updateBarHeights";
-import { setupAudioStream } from "../utils/audioStreamStore";
+import { setupAudioStream } from "../utils/setupAudioStream";
 import { blobToBase64 } from "../utils/blobToBase64";
 
 export enum AgentState {
@@ -27,15 +27,6 @@ type AgentData = {
   position: "right" | "left" | "center";
 };
 
-enum MicrophoneState {
-  WAITING_FOR_PERMISSION = "waiting_for_permission",
-  PERMISSION_DENIED = "permission_denied",
-  RECORDING = "recording",
-  NOT_RECORDING = "not_recording",
-  NOT_FOUND = "not_found",
-  NOT_SUPPORTED = "not_supported",
-}
-
 const API_URL = import.meta.env.VITE_GLOBAL_API_URL;
 const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
 
@@ -47,12 +38,6 @@ export type VoiceChatWidgetProps = {
 
 const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   const [agentData, setAgentData] = createSignal<AgentData | null>(null);
-  const [agentState, setAgentState] = createSignal<AgentState>(
-    AgentState.THINKING
-  );
-  const [microphoneState, setMicrophoneState] = createSignal<MicrophoneState>(
-    MicrophoneState.WAITING_FOR_PERMISSION
-  );
   const [isMinimized, setIsMinimized] = createSignal(false);
   const [isWidgetOpen, setIsWidgetOpen] = createSignal(false);
   const [barHeights, setBarHeights] = createSignal<BarHeights>([0, 0, 0]);
@@ -70,17 +55,11 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   createEffect(
     on(isCalendlyOpen, () => {
       const postMessageEventListener = (event: MessageEvent) => {
-        const isCalendlyEvent =
-          event.data.event && event.data.event.indexOf("calendly") === 0;
-
-        console.log(event.data, isCalendlyEvent);
-        if (!isCalendlyEvent) return;
+        if (!isCalendlyEvent(event)) return;
 
         const eventData = event.data.event;
         if (eventData === "calendly.event_scheduled") {
-          fetch(`${API_URL}/agent-data/${props.agentId}`, {
-            method: "POST",
-          });
+          saveAMeetingEvent(props.agentId);
         }
       };
 
@@ -100,21 +79,6 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     })
   );
 
-  const fetchAgentData = async () => {
-    try {
-      const response = await fetch(`${API_URL}/agent-data/${props.agentId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch agent data");
-      }
-      const data = await response.json();
-      setAgentData(data);
-      console.log("Agent data fetched:", data);
-      setDataFetched(true);
-    } catch (error) {
-      console.error("Error fetching agent data:", error);
-    }
-  };
-
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -128,16 +92,6 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       });
 
       mediaRecorder = new MediaRecorder(stream);
-
-      mediaRecorder.addEventListener("start", () => {
-        console.log("MediaRecorder started");
-        setMicrophoneState(MicrophoneState.RECORDING);
-      });
-
-      mediaRecorder.addEventListener("stop", () => {
-        console.log("MediaRecorder stopped");
-        setMicrophoneState(MicrophoneState.NOT_RECORDING);
-      });
 
       mediaRecorder.addEventListener("dataavailable", async (event) => {
         if (
@@ -153,15 +107,6 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       mediaRecorder.start(500);
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      setMicrophoneState(
-        error.name === "NotAllowedError"
-          ? MicrophoneState.PERMISSION_DENIED
-          : error.name === "NotFoundError"
-          ? MicrophoneState.NOT_FOUND
-          : error.name === "NotSupportedError"
-          ? MicrophoneState.NOT_SUPPORTED
-          : MicrophoneState.NOT_RECORDING
-      );
     }
   };
 
@@ -182,7 +127,6 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
         socket,
         setBarHeights,
         setMinimizedBarHeights,
-        setAgentState,
         setSocketReady,
       });
     };
@@ -218,7 +162,10 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       async: true,
     });
 
-    fetchAgentData();
+    fetchAgentData(props.agentId).then((data) => {
+      setAgentData(data);
+      setDataFetched(true);
+    });
   });
 
   onCleanup(() => {
@@ -254,17 +201,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     e.stopPropagation();
     if (typeof window.Calendly !== "undefined") {
       setIsCalendlyOpen(true);
-      setTimeout(() => {
-        window.Calendly.initInlineWidget({
-          url: "https://calendly.com/dawid-niegrebecki/meeting-with-dawid",
-          parentElement: document.getElementById("calendly-embed"),
-          utm: {
-            utm_source: "repnai",
-            utm_medium: "voicechatwidget",
-            utm_campaign: props.agentId,
-          },
-        });
-      }, 0);
+      initCalendlyWidget();
     } else {
       console.error("Calendly not found");
     }
@@ -276,185 +213,238 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
   return (
     <Show when={dataFetched()} fallback={<></>}>
-      <dialog
-        open={isCalendlyOpen()}
-        onClose={closeCalendly}
-        id="calendly-dialog"
-        style={{
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          "z-index": "9999",
-          padding: "0",
-          border: "1px solid #000",
-          "border-radius": "8px",
-          "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
-          width: "auto",
-          height: "760px",
-        }}
-      >
-        <Show when={isCalendlyOpen()} fallback={<></>}>
-          <button
-            style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              background: "#fff",
-              "border-radius": "50%",
-              width: "30px",
-              height: "30px",
-              display: "flex",
-              "align-items": "center",
-              "justify-content": "center",
-              border: "none",
-              cursor: "pointer",
-              "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
-            }}
-            onClick={closeCalendly}
-          >
-            <span
-              style={{
-                "font-size": "16px",
-                color: "#333",
-                "line-height": 1,
-              }}
-            >
-              ✕
-            </span>
-          </button>
-
-          <div
-            id="calendly-embed"
-            style={{ "min-width": "320px", height: "750px", width: "auto" }}
-          ></div>
-        </Show>
-      </dialog>
+      <CalendlyDialog isOpen={isCalendlyOpen()} onClose={closeCalendly} />
 
       <style>{styles}</style>
       <div id="voice-chat-widget">
-        <button
-          id="widget-toggle"
+        <WidgetToggleButton
+          isWidgetOpen={isWidgetOpen()}
+          agentData={agentData()}
           onClick={toggleWidget}
-          style={{ display: isWidgetOpen() ? "none" : "inline-block" }}
-        >
-          <img
-            id="widget-toggle-img"
-            src={agentData()?.avatarUrl}
-            alt={agentData()?.displayName}
-          />
-        </button>
+        />
 
-        <div
-          id="widget-content"
-          style={{
-            transform:
-              isWidgetOpen() && !isMinimized() ? "scale(1)" : "scale(0)",
-            opacity: isWidgetOpen() && !isMinimized() ? "1" : "0",
-            display: isWidgetOpen() && !isMinimized() ? "flex" : "none",
-          }}
-        >
-          <div id="widget-content-header">
-            <p class="name">{agentData()?.displayName}</p>
-            <button id="book-appointment-button" onClick={handleCalendlyClick}>
-              <CalendarIcon />
-            </button>
-          </div>
-          <img
-            src={agentData()?.avatarUrl}
-            alt={agentData()?.displayName}
-            id="avatar-image"
-          />
-          <div id="voice-animation">
-            <For each={barHeights()}>
-              {(height, index) => (
-                <div class="bar" style={{ height: `${height}%` }}></div>
-              )}
-            </For>
-          </div>
-          <p id="powered-by-text">Powered by RepnAI</p>
-        </div>
+        <WidgetContent
+          isWidgetOpen={isWidgetOpen()}
+          isMinimized={isMinimized()}
+          agentData={agentData()}
+          barHeights={barHeights()}
+          onCalendlyClick={handleCalendlyClick}
+        />
 
-        <div
-          id="floating-buttons"
-          style={{
-            transform: isWidgetOpen() ? "scale(1)" : "scale(0)",
-            opacity: isWidgetOpen() ? "1" : "0",
-            display: isWidgetOpen() ? "flex" : "none",
-          }}
-        >
-          <button
-            id="minimize-button"
-            onClick={minimizeWidget}
-            style={{
-              width: isMinimized() ? "150px" : "40px",
-              "justify-content": isMinimized() ? "space-between" : "center",
-              "border-radius": isMinimized() ? "20px" : "50%",
-            }}
-          >
-            <div
-              id="minimized-speech-bubble"
-              style={{ display: isMinimized() ? "flex" : "none" }}
-            >
-              <For each={minimizedBarHeights()}>
-                {(height, index) => (
-                  <div
-                    class="minimized-bar"
-                    style={{ height: `${height}%` }}
-                  ></div>
-                )}
-              </For>
-            </div>
-            <p
-              id="speaking-summary"
-              style={{ display: isMinimized() ? "block" : "none" }}
-            >
-              {agentData()?.displayName}
-            </p>
-            <svg
-              id="minimize-icon"
-              style={{
-                transform: isMinimized() ? "rotate(180deg)" : "rotate(0deg)",
-              }}
-              width="18"
-              height="32"
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M5.33317 12L15.9998 22.6667L26.6665 12"
-                stroke="black"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-          <button id="close-button" onClick={closeWidget}>
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M25.3332 6.66666L6.6665 25.3333M6.66652 6.66666L25.3332 25.3333"
-                stroke="black"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
+        <FloatingButtons
+          isWidgetOpen={isWidgetOpen()}
+          isMinimized={isMinimized()}
+          minimizedBarHeights={minimizedBarHeights()}
+          agentData={agentData()}
+          onMinimize={minimizeWidget}
+          onClose={closeWidget}
+        />
       </div>
     </Show>
   );
 };
 
 export default VoiceChatWidget;
+
+const CalendlyDialog = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => (
+  <dialog
+    open={isOpen}
+    onClose={onClose}
+    id="calendly-dialog"
+    style={{
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      "z-index": "9999",
+      padding: "0",
+      border: "1px solid #000",
+      "border-radius": "8px",
+      "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
+      width: "auto",
+      height: "760px",
+    }}
+  >
+    <Show when={isOpen} fallback={<></>}>
+      <button
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          background: "#fff",
+          "border-radius": "50%",
+          width: "30px",
+          height: "30px",
+          display: "flex",
+          "align-items": "center",
+          "justify-content": "center",
+          border: "none",
+          cursor: "pointer",
+          "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
+        }}
+        onClick={onClose}
+      >
+        <span
+          style={{
+            "font-size": "16px",
+            color: "#333",
+            "line-height": 1,
+          }}
+        >
+          ✕
+        </span>
+      </button>
+
+      <div
+        id="calendly-embed"
+        style={{ "min-width": "320px", height: "750px", width: "auto" }}
+      ></div>
+    </Show>
+  </dialog>
+);
+
+const WidgetToggleButton = ({
+  isWidgetOpen,
+  agentData,
+  onClick,
+}: {
+  isWidgetOpen: boolean;
+  agentData: AgentData | null;
+  onClick: () => void;
+}) => (
+  <button
+    id="widget-toggle"
+    onClick={onClick}
+    style={{ display: isWidgetOpen ? "none" : "inline-block" }}
+  >
+    <img
+      id="widget-toggle-img"
+      src={agentData?.avatarUrl}
+      alt={agentData?.displayName}
+    />
+  </button>
+);
+
+const WidgetContent = ({
+  isWidgetOpen,
+  isMinimized,
+  agentData,
+  barHeights,
+  onCalendlyClick,
+}: {
+  isWidgetOpen: boolean;
+  isMinimized: boolean;
+  agentData: AgentData | null;
+  barHeights: BarHeights;
+  onCalendlyClick: (e: MouseEvent) => void;
+}) => (
+  <div
+    id="widget-content"
+    style={{
+      transform: isWidgetOpen && !isMinimized ? "scale(1)" : "scale(0)",
+      opacity: isWidgetOpen && !isMinimized ? "1" : "0",
+      display: isWidgetOpen && !isMinimized ? "flex" : "none",
+    }}
+  >
+    <div id="widget-content-header">
+      <p class="name">{agentData?.displayName}</p>
+      <button id="book-appointment-button" onClick={onCalendlyClick}>
+        <CalendarIcon />
+      </button>
+    </div>
+    <img
+      src={agentData?.avatarUrl}
+      alt={agentData?.displayName}
+      id="avatar-image"
+    />
+    <div id="voice-animation">
+      <For each={barHeights}>
+        {(height, index) => (
+          <div class="bar" style={{ height: `${height}%` }}></div>
+        )}
+      </For>
+    </div>
+    <p id="powered-by-text">Powered by RepnAI</p>
+  </div>
+);
+
+const FloatingButtons = ({
+  isWidgetOpen,
+  isMinimized,
+  minimizedBarHeights,
+  agentData,
+  onMinimize,
+  onClose,
+}: {
+  isWidgetOpen: boolean;
+  isMinimized: boolean;
+  minimizedBarHeights: BarHeights;
+  agentData: AgentData | null;
+  onMinimize: () => void;
+  onClose: () => void;
+}) => (
+  <div
+    id="floating-buttons"
+    style={{
+      transform: isWidgetOpen ? "scale(1)" : "scale(0)",
+      opacity: isWidgetOpen ? "1" : "0",
+      display: isWidgetOpen ? "flex" : "none",
+    }}
+  >
+    <button
+      id="minimize-button"
+      onClick={onMinimize}
+      style={{
+        width: isMinimized ? "150px" : "40px",
+        "justify-content": isMinimized ? "space-between" : "center",
+        "border-radius": isMinimized ? "20px" : "50%",
+      }}
+    >
+      <div
+        id="minimized-speech-bubble"
+        style={{ display: isMinimized ? "flex" : "none" }}
+      >
+        <For each={minimizedBarHeights}>
+          {(height, index) => (
+            <div class="minimized-bar" style={{ height: `${height}%` }}></div>
+          )}
+        </For>
+      </div>
+      <p
+        id="speaking-summary"
+        style={{ display: isMinimized ? "block" : "none" }}
+      >
+        {agentData?.displayName}
+      </p>
+      <svg
+        id="minimize-icon"
+        style={{
+          transform: isMinimized ? "rotate(180deg)" : "rotate(0deg)",
+        }}
+        width="18"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M5.33317 12L15.9998 22.6667L26.6665 12"
+          stroke="black"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+    <CloseButton onClick={onClose} />
+  </div>
+);
 
 const CalendarIcon = () => (
   <svg
@@ -473,3 +463,60 @@ const CalendarIcon = () => (
     />
   </svg>
 );
+
+const CloseButton = ({ onClick }: { onClick: () => void }) => (
+  <button onClick={onClick}>
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M25.3332 6.66666L6.6665 25.3333M6.66652 6.66666L25.3332 25.3333"
+        stroke="black"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </button>
+);
+
+const fetchAgentData = async (agentId: string) => {
+  try {
+    const response = await fetch(`${API_URL}/agent-data/${agentId}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch agent data");
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching agent data:", error);
+  }
+};
+
+const saveAMeetingEvent = (agentId: string) => {
+  fetch(`${API_URL}/agent-data/${agentId}`, {
+    method: "POST",
+  });
+};
+
+const isCalendlyEvent = (event: MessageEvent) => {
+  return event.data.event && event.data.event.indexOf("calendly") === 0;
+};
+
+const initCalendlyWidget = () => {
+  const utm = {
+    utm_source: "repnai",
+    utm_medium: "voicechatwidget",
+  };
+  setTimeout(() => {
+    window.Calendly.initInlineWidget({
+      url: "https://calendly.com/dawid-niegrebecki/meeting-with-dawid",
+      parentElement: document.getElementById("calendly-embed"),
+      utm,
+    });
+  }, 0);
+};
