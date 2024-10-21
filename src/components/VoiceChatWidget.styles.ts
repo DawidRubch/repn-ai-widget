@@ -139,13 +139,6 @@ const styles = `
   transition: all 0.3s ease-in-out;
 }
   
-.minimized-button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 150px;
-  border-radius: 20px;
-}
 
 #minimized-speech-bubble {
   display: flex;

@@ -435,6 +435,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
             style={{
               width: isMinimized() ? "150px" : "40px",
               "justify-content": isMinimized() ? "space-between" : "center",
+              "border-radius": isMinimized() ? "20px" : "50%",
             }}
           >
             <div
