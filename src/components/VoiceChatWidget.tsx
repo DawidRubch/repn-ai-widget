@@ -67,6 +67,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
   const [dataFetched, setDataFetched] = createSignal(false);
   const [isCalendlyOpen, setIsCalendlyOpen] = createSignal(false);
+  const [socketReady, setSocketReady] = createSignal(false);
 
   let mediaRecorder: MediaRecorder | null = null;
   let socket: WebSocket | null = null;
@@ -74,10 +75,12 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
   createEffect(
     on(isCalendlyOpen, () => {
+      console.log("isCalendlyOpen", isCalendlyOpen());
       const postMessageEventListener = (event: MessageEvent) => {
         const isCalendlyEvent =
           event.data.event && event.data.event.indexOf("calendly") === 0;
 
+        console.log(event.data, isCalendlyEvent);
         if (!isCalendlyEvent) return;
 
         const eventData = event.data.event;
@@ -139,7 +142,8 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
         if (
           event.data.size > 0 &&
           socket &&
-          socket.readyState === WebSocket.OPEN
+          socket.readyState === WebSocket.OPEN &&
+          socketReady()
         ) {
           const base64 = await blobToBase64(event.data);
           socket.send(JSON.stringify({ type: "audioIn", data: base64 }));
@@ -316,6 +320,10 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
             console.log("newAudioStream");
             queue = [];
           }
+
+          if (data.type === "ready") {
+            setSocketReady(true);
+          }
         }
       };
     };
@@ -367,9 +375,6 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     createScriptLoader({
       src: "https://assets.calendly.com/assets/external/widget.js",
       async: true,
-      onLoad: () => {
-        console.log("Calendly script loaded");
-      },
     });
 
     fetchAgentData();
