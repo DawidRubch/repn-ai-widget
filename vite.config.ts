@@ -11,7 +11,7 @@ export default defineConfig({
     solidPlugin(),
   ],
   server: {
-    port: 3000,
+    port: 8000,
     host: '127.0.0.1'
 
   },

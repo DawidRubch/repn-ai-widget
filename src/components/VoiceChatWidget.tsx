@@ -40,8 +40,8 @@ enum AgentState {
   THINKING = "thinking",
 }
 
-const API_URL = "http://localhost:3001";
-const WEBSOCKET_URL = `ws://localhost:3001/talk`;
+const API_URL = import.meta.env.VITE_GLOBAL_API_URL;
+const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
 
 type BarHeights = [number, number, number];
 
@@ -366,23 +366,17 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   };
 
   const handleCalendlyClick = () => {
-    if (agentData().calendlyUrl) {
-      window.Calendly.initInlineWidget({
+    if (typeof window.Calendly !== "undefined") {
+      window.Calendly.initPopupWidget({
         url: agentData()?.calendlyUrl,
       });
+    } else {
+      console.error("Calendly not found");
     }
   };
 
   return (
     <Show when={dataFetched()} fallback={<></>}>
-      <Show when={agentData()?.calendlyUrl} fallback={<></>}>
-        <script
-          src="https://assets.calendly.com/assets/external/widget.js"
-          type="text/javascript"
-          async
-        ></script>
-      </Show>
-
       <style>{styles}</style>
       <div id="voice-chat-widget">
         <button
