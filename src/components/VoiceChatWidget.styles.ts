@@ -23,7 +23,7 @@ const styles = `
   width: 80px;
   height: 80px;
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+ box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 #widget-toggle-img {
@@ -144,7 +144,6 @@ const styles = `
   display: flex;
   align-items: center;
   height: 30px;
-
 }
 
 #minimized-speech-bubble .minimized-bar {

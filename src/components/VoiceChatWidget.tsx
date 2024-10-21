@@ -6,9 +6,11 @@ import {
   For,
   onMount,
   Show,
+  on,
 } from "solid-js";
 import { render } from "solid-js/web";
 import styles from "./VoiceChatWidget.styles";
+import { createScriptLoader } from "@solid-primitives/script-loader";
 
 declare global {
   interface Window {
@@ -64,10 +66,35 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     createSignal<BarHeights>([0, 0, 0]);
 
   const [dataFetched, setDataFetched] = createSignal(false);
+  const [isCalendlyOpen, setIsCalendlyOpen] = createSignal(false);
 
   let mediaRecorder: MediaRecorder | null = null;
   let socket: WebSocket | null = null;
   let audioElement: HTMLAudioElement | null = null;
+
+  createEffect(
+    on(isCalendlyOpen, () => {
+      const postMessageEventListener = (event: MessageEvent) => {
+        const isCalendlyEvent =
+          event.data.event && event.data.event.indexOf("calendly") === 0;
+
+        if (!isCalendlyEvent) return;
+
+        const eventData = event.data.event;
+        if (eventData === "calendly.event_scheduled") {
+          fetch(`${API_URL}/agent-data/${props.agentId}`, {
+            method: "POST",
+          });
+        }
+      };
+
+      if (isCalendlyOpen()) {
+        window.addEventListener("message", postMessageEventListener);
+      } else {
+        window.removeEventListener("message", postMessageEventListener);
+      }
+    })
+  );
 
   const fetchAgentData = async () => {
     try {
@@ -337,6 +364,14 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   };
 
   onMount(() => {
+    createScriptLoader({
+      src: "https://assets.calendly.com/assets/external/widget.js",
+      async: true,
+      onLoad: () => {
+        console.log("Calendly script loaded");
+      },
+    });
+
     fetchAgentData();
   });
 
@@ -365,18 +400,91 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     stopRecording();
   };
 
-  const handleCalendlyClick = () => {
+  const handleCalendlyClick = (e: MouseEvent) => {
+    if (isCalendlyOpen()) {
+      closeCalendly();
+      return;
+    }
+    e.stopPropagation();
     if (typeof window.Calendly !== "undefined") {
-      window.Calendly.initPopupWidget({
-        url: agentData()?.calendlyUrl,
-      });
+      setIsCalendlyOpen(true);
+      setTimeout(() => {
+        window.Calendly.initInlineWidget({
+          url: "https://calendly.com/dawid-niegrebecki/meeting-with-dawid",
+          parentElement: document.getElementById("calendly-embed"),
+          utm: {
+            utm_source: "repnai",
+            utm_medium: "voicechatwidget",
+            utm_campaign: props.agentId,
+          },
+        });
+      }, 0);
     } else {
       console.error("Calendly not found");
     }
   };
 
+  const closeCalendly = () => {
+    setIsCalendlyOpen(false);
+  };
+
   return (
     <Show when={dataFetched()} fallback={<></>}>
+      <dialog
+        open={isCalendlyOpen()}
+        onClose={closeCalendly}
+        id="calendly-dialog"
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          "z-index": "9999",
+          padding: "0",
+          border: "1px solid #000",
+          "border-radius": "8px",
+          "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
+          width: "auto",
+          height: "760px",
+        }}
+      >
+        <Show when={isCalendlyOpen()} fallback={<></>}>
+          <button
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              background: "#fff",
+              "border-radius": "50%",
+              width: "30px",
+              height: "30px",
+              display: "flex",
+              "align-items": "center",
+              "justify-content": "center",
+              border: "none",
+              cursor: "pointer",
+              "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
+            }}
+            onClick={closeCalendly}
+          >
+            <span
+              style={{
+                "font-size": "16px",
+                color: "#333",
+                "line-height": 1,
+              }}
+            >
+              ✕
+            </span>
+          </button>
+
+          <div
+            id="calendly-embed"
+            style={{ "min-width": "320px", height: "750px", width: "auto" }}
+          ></div>
+        </Show>
+      </dialog>
+
       <style>{styles}</style>
       <div id="voice-chat-widget">
         <button
@@ -403,7 +511,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
           <div id="widget-content-header">
             <p class="name">{agentData()?.displayName}</p>
             <button id="book-appointment-button" onClick={handleCalendlyClick}>
-              {/* SVG icon for booking */}
+              <CalendarIcon />
             </button>
           </div>
           <img
@@ -501,3 +609,21 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 };
 
 export default VoiceChatWidget;
+
+const CalendarIcon = () => (
+  <svg
+    width="40"
+    height="40"
+    viewBox="0 0 50 48"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M41.1584 42V40C41.1584 37.7909 39.3252 36 37.0638 36H28.8747C26.6133 36 24.7801 37.7909 24.7801 40V42M18.6383 22H8.40186M41.1584 18V14C41.1584 11.7909 39.3252 10 37.0638 10H12.4964C10.2351 10 8.40186 11.7909 8.40186 14V38C8.40186 40.2091 10.2351 42 12.4964 42H16.591M30.9219 6V14M18.6383 6V14M37.0638 26C37.0638 28.2091 35.2306 30 32.9692 30C30.7079 30 28.8747 28.2091 28.8747 26C28.8747 23.7909 30.7079 22 32.9692 22C35.2306 22 37.0638 23.7909 37.0638 26Z"
+      stroke="#001A72"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+);
