@@ -1,23 +1,23 @@
+import { createScriptLoader } from "@solid-primitives/script-loader";
 import {
-  createSignal,
   createEffect,
-  onCleanup,
-  JSX,
+  createSignal,
   For,
+  on,
+  onCleanup,
   onMount,
   Show,
-  on,
 } from "solid-js";
-import { render } from "solid-js/web";
 import styles from "./VoiceChatWidget.styles";
-import { createScriptLoader } from "@solid-primitives/script-loader";
+import { updateBarHeights } from "../utils/updateBarHeights";
+import { setupAudioStream } from "../utils/audioStreamStore";
+import { blobToBase64 } from "../utils/blobToBase64";
 
-declare global {
-  interface Window {
-    Calendly: any;
-  }
+export enum AgentState {
+  SPEAKING = "speaking",
+  LISTENING = "listening",
+  THINKING = "thinking",
 }
-
 // Type definitions
 type AgentData = {
   avatarUrl: string;
@@ -34,12 +34,6 @@ enum MicrophoneState {
   NOT_RECORDING = "not_recording",
   NOT_FOUND = "not_found",
   NOT_SUPPORTED = "not_supported",
-}
-
-enum AgentState {
-  SPEAKING = "speaking",
-  LISTENING = "listening",
-  THINKING = "thinking",
 }
 
 const API_URL = import.meta.env.VITE_GLOBAL_API_URL;
@@ -75,7 +69,6 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
   createEffect(
     on(isCalendlyOpen, () => {
-      console.log("isCalendlyOpen", isCalendlyOpen());
       const postMessageEventListener = (event: MessageEvent) => {
         const isCalendlyEvent =
           event.data.event && event.data.event.indexOf("calendly") === 0;
@@ -95,6 +88,14 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
         window.addEventListener("message", postMessageEventListener);
       } else {
         window.removeEventListener("message", postMessageEventListener);
+      }
+    })
+  );
+
+  createEffect(
+    on(socketReady, () => {
+      if (socketReady()) {
+        startRecording();
       }
     })
   );
@@ -142,8 +143,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
         if (
           event.data.size > 0 &&
           socket &&
-          socket.readyState === WebSocket.OPEN &&
-          socketReady()
+          socket.readyState === WebSocket.OPEN
         ) {
           const base64 = await blobToBase64(event.data);
           socket.send(JSON.stringify({ type: "audioIn", data: base64 }));
@@ -178,7 +178,13 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
     socket.onopen = () => {
       console.log("WebSocket connected");
-      setupAudioStream(socket);
+      setupAudioStream({
+        socket,
+        setBarHeights,
+        setMinimizedBarHeights,
+        setAgentState,
+        setSocketReady,
+      });
     };
 
     socket.onclose = () => {
@@ -200,175 +206,10 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   const startConversation = () => {
     if (!socket) {
       initializeWebSocket();
-      startRecording();
     } else {
       disconnectWebSocket();
       stopRecording();
     }
-  };
-
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
-
-  const setupAudioStream = (socket: WebSocket) => {
-    let mediaSource = new MediaSource();
-    let audioElement = new Audio();
-    let sourceBuffer: SourceBuffer | null = null;
-    let queue: ArrayBuffer[] = [];
-    let isAppending = false;
-    let audioContext = new (window.AudioContext ||
-      (window as any).webkitAudioContext)();
-    let analyser = audioContext.createAnalyser();
-    let audioCurrentTime = 0;
-
-    analyser.fftSize = 256;
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-    const updateBars = (
-      setHeights: (heights: BarHeights) => void,
-      scaleFactorMultiplier = 0.5
-    ) => {
-      analyser.getByteFrequencyData(dataArray);
-      const updateOrder = [1, 0, 2]; // Middle, then left, then right
-      const newHeights: BarHeights = [0, 0, 0];
-
-      for (let i = 0; i < 3; i++) {
-        const barIndex = updateOrder[i];
-        const distanceFromMiddle = Math.abs(1 - barIndex);
-        const dataIndex = Math.floor(dataArray.length / 2) - distanceFromMiddle;
-        const value = dataArray[dataIndex];
-        const percent = value / 255;
-
-        newHeights[barIndex] = 3 * percent * 100 * scaleFactorMultiplier;
-      }
-
-      setHeights(newHeights);
-    };
-
-    const updateAllBars = () => {
-      updateBars(setBarHeights, 1);
-      updateBars(setMinimizedBarHeights, 0.2);
-      requestAnimationFrame(updateAllBars);
-    };
-
-    updateAllBars();
-
-    const checkAudioActivity = setInterval(() => {
-      if (audioElement.currentTime === 0) return;
-
-      if (audioElement.currentTime === audioCurrentTime) {
-        setAgentState(AgentState.LISTENING);
-      }
-
-      audioCurrentTime = audioElement.currentTime;
-    }, 150);
-
-    const source = audioContext.createMediaElementSource(audioElement);
-    source.connect(analyser);
-    analyser.connect(audioContext.destination);
-
-    mediaSource.onsourceopen = () => {
-      sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-
-      sourceBuffer.onupdateend = () => {
-        isAppending = false;
-        appendNextBuffer();
-      };
-
-      socket.onmessage = async (event) => {
-        if (event.data instanceof Blob) {
-          const arrayBuffer = await event.data.arrayBuffer();
-          queue.push(arrayBuffer);
-          appendNextBuffer();
-        } else {
-          const data = JSON.parse(event.data);
-          if (data.type === "voiceActivityStart") {
-            console.log("voiceActivityStart");
-            setAgentState(AgentState.LISTENING);
-            audioElement.currentTime = 0;
-            queue = [];
-            if (sourceBuffer && !sourceBuffer.updating) {
-              sourceBuffer.abort();
-            }
-
-            mediaSource.endOfStream();
-            mediaSource = new MediaSource();
-
-            audioElement.src = URL.createObjectURL(mediaSource);
-
-            mediaSource.onsourceopen = () => {
-              sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-              sourceBuffer.onupdateend = () => {
-                isAppending = false;
-                appendNextBuffer();
-              };
-            };
-          }
-
-          if (data.type === "voiceActivityEnd") {
-            console.log("voiceActivityEnd");
-            setAgentState(AgentState.THINKING);
-          }
-
-          if (data.type === "newAudioStream") {
-            console.log("newAudioStream");
-            queue = [];
-          }
-
-          if (data.type === "ready") {
-            setSocketReady(true);
-          }
-        }
-      };
-    };
-
-    const appendNextBuffer = () => {
-      if (
-        !sourceBuffer ||
-        isAppending ||
-        queue.length === 0 ||
-        sourceBuffer.updating
-      ) {
-        return;
-      }
-
-      isAppending = true;
-      const nextBuffer = queue.shift();
-      if (nextBuffer) {
-        sourceBuffer.appendBuffer(nextBuffer);
-      }
-    };
-
-    audioElement.src = URL.createObjectURL(mediaSource);
-
-    audioElement.oncanplay = () => {
-      console.log("Audio can play");
-      setAgentState(AgentState.SPEAKING);
-      audioElement
-        .play()
-        .catch((error) => console.error("Error playing audio:", error));
-    };
-
-    audioElement.onended = () => {
-      console.log("Audio ended");
-    };
-
-    audioElement.onpause = () => {
-      console.log("Audio paused");
-    };
-    // Cleanup function
-    onCleanup(() => {
-      clearInterval(checkAudioActivity);
-      audioElement.pause();
-      audioElement.src = "";
-      audioContext.close();
-    });
   };
 
   onMount(() => {
