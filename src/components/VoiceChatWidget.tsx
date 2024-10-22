@@ -26,11 +26,23 @@ type AgentData = {
   position: "right" | "left" | "center";
 };
 
-const API_URL =
-  import.meta.env.VITE_GLOBAL_API_URL || "https://repn-voice-api.fly.dev";
-const WEBSOCKET_URL =
-  import.meta.env.VITE_GLOBAL_WEBSOCKET_URL ||
-  "wss://repn-voice-api.fly.dev/talk";
+const getAPIUrls = () => {
+  try {
+    const API_URL =
+      import.meta.env.VITE_GLOBAL_API_URL || "https://repn-voice-api.fly.dev";
+    const WEBSOCKET_URL =
+      import.meta.env.VITE_WEBSOCKET_URL || "wss://repn-voice-api.fly.dev/talk";
+
+    return { API_URL, WEBSOCKET_URL };
+  } catch (error) {
+    return {
+      API_URL: "https://repn-voice-api.fly.dev",
+      WEBSOCKET_URL: "wss://repn-voice-api.fly.dev/talk",
+    };
+  }
+};
+
+const { API_URL, WEBSOCKET_URL } = getAPIUrls();
 
 type BarHeights = [number, number, number];
 
