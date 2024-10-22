@@ -3,7 +3,7 @@ import VoiceChatWidget, {
   VoiceChatWidgetProps,
 } from "../components/VoiceChatWidget";
 
-export function registerWebComponents() {
+function registerWebComponents() {
   customElement("voice-chat-widget", getInitialProps(), VoiceChatWidget);
 }
 

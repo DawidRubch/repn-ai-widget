@@ -15,7 +15,8 @@ export default {
 
     const headers = new Headers();
     headers.set("Content-Type", "application/javascript");
-    headers.set("Cache-Control", "public, max-age=31536000");
+    //TODO: set cache to like 10 minutes
+    headers.set("Cache-Control", "no-cache");
     headers.set("Access-Control-Allow-Origin", "*");
 
     return new Response(object.body, {

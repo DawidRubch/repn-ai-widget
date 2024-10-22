@@ -1,10 +1,7 @@
 import resolve from "@rollup/plugin-node-resolve";
 import replace from "@rollup/plugin-replace";
-import { terser } from "rollup-plugin-terser";
 import babel from "rollup-plugin-babel";
-import postcss from "rollup-plugin-postcss";
-import autoprefixer from "autoprefixer";
-import tailwindcss from "tailwindcss";
+import { terser } from "rollup-plugin-terser";
 
 const extensions = [".ts", ".tsx"];
 

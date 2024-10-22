@@ -29,7 +29,7 @@ type AgentData = {
 const getAPIUrls = () => {
   try {
     const API_URL =
-      import.meta.env.VITE_GLOBAL_API_URL || "https://repn-voice-api.fly.dev";
+      import.meta.env.VITE_API_URL || "https://repn-voice-api.fly.dev";
     const WEBSOCKET_URL =
       import.meta.env.VITE_WEBSOCKET_URL || "wss://repn-voice-api.fly.dev/talk";
 
@@ -179,8 +179,28 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     fetchAgentData(props.agentId).then((data) => {
       setAgentData(data);
       setDataFetched(true);
+      showIntroMessage();
     });
   });
+
+  const showIntroMessage = () => {
+    const introMessageElement = document.getElementById("intro-message");
+
+    if (!introMessageElement || isWidgetOpen() || !agentData()?.introMessage)
+      return;
+
+    setTimeout(() => {
+      if (introMessageElement) {
+        introMessageElement.classList.add("show");
+      }
+    }, 5000);
+
+    setTimeout(() => {
+      if (introMessageElement) {
+        introMessageElement.classList.remove("show");
+      }
+    }, 8000);
+  };
 
   onCleanup(() => {
     disconnectWebSocket();
@@ -233,6 +253,9 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       <div id="voice-chat-widget">
         <Show when={!isWidgetOpen()}>
           <div class="status-indicator"></div>
+          <div id="intro-message">
+            <p>{agentData()?.introMessage}</p>
+          </div>
         </Show>
         <WidgetToggleButton
           isWidgetOpen={isWidgetOpen()}

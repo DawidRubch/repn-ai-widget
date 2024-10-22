@@ -72,8 +72,6 @@ export const setupAudioStream = (params: AudioStreamParams) => {
                         clearTimeout(inactivityTimeout);
                         inactivityTimeout = null;
                     }
-
-
                     audioElement.currentTime = 0;
 
                     audioElement.pause();
@@ -128,7 +126,6 @@ export const setupAudioStream = (params: AudioStreamParams) => {
 
         audioElement.onended = () => {
             console.log("audio ended");
-
         };
 
         audioElement.onplaying = () => {
@@ -138,13 +135,6 @@ export const setupAudioStream = (params: AudioStreamParams) => {
 
     initializeAudio();
     socket.onmessage = handleSocketMessage;
-
-    onCleanup(() => {
-        clearInterval(checkAudioActivity);
-        audioElement.pause();
-        audioElement.src = "";
-        audioContext.close();
-    });
 };
 
 

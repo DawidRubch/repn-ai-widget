@@ -2,8 +2,8 @@
 const styles = `
 #voice-chat-widget {
   position: fixed;
-  bottom: 5px;
-  right: 5px;
+  bottom: 20px;
+  right: 20px;
   font-family: sans-serif;
   z-index: 10000;
 }
@@ -36,6 +36,39 @@ const styles = `
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
+}
+
+#intro-message {
+  background-color: #2e9dfb;
+  color: #fff;
+  padding: 10px;
+  border-radius: 20px;
+  width: 300px;
+  position: absolute;
+  bottom: 100px;
+  right: 0px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  opacity: 0;
+  visibility: hidden;
+}
+
+#intro-message.show {
+  opacity: 1;
+  visibility: visible;
+  animation: showIntroMessage 0.3s ease-in-out;
+}
+
+
+@keyframes showIntroMessage {
+  0% {
+    opacity: 0;
+    visibility: hidden;
+  }
+  100% {
+    opacity: 1;
+    visibility: visible;
+  }
 }
 
 .status-indicator {
