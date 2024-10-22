@@ -11,7 +11,7 @@ type AudioStreamParams = {
 
 export const setupAudioStream = (params: AudioStreamParams) => {
     const { socket, setBarHeights, setMinimizedBarHeights, setSocketReady } = params;
-    const mediaSource = new MediaSource();
+    let mediaSource = new MediaSource();
     const audioElement = new Audio();
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const analyser = audioContext.createAnalyser();
@@ -52,7 +52,18 @@ export const setupAudioStream = (params: AudioStreamParams) => {
                     queue = [];
                     if (sourceBuffer && !sourceBuffer.updating) sourceBuffer.abort();
                     mediaSource.endOfStream();
-                    audioElement.src = URL.createObjectURL(new MediaSource());
+                    mediaSource = new MediaSource();
+                    audioElement.src = URL.createObjectURL(mediaSource);
+
+                    mediaSource.onsourceopen = () => {
+                        console.log("source open");
+                        sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+                        sourceBuffer.onupdateend = () => {
+                            isAppending = false;
+                            appendNextBuffer();
+                        };
+                    };
+
                     break;
                 case "voiceActivityEnd":
                     console.log("voiceActivityEnd");

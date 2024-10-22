@@ -246,16 +246,15 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
 export default VoiceChatWidget;
 
-const CalendlyDialog = ({
-  isOpen,
-  onClose,
-}: {
+type CalendlyDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-}) => (
+};
+
+const CalendlyDialog = (props: CalendlyDialogProps) => (
   <dialog
-    open={isOpen}
-    onClose={onClose}
+    open={props.isOpen}
+    onClose={props.onClose}
     id="calendly-dialog"
     style={{
       position: "fixed",
@@ -271,7 +270,7 @@ const CalendlyDialog = ({
       height: "760px",
     }}
   >
-    <Show when={isOpen} fallback={<></>}>
+    <Show when={props.isOpen} fallback={<></>}>
       <button
         style={{
           position: "absolute",
@@ -288,7 +287,7 @@ const CalendlyDialog = ({
           cursor: "pointer",
           "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
         }}
-        onClick={onClose}
+        onClick={props.onClose}
       >
         <span
           style={{
@@ -309,108 +308,100 @@ const CalendlyDialog = ({
   </dialog>
 );
 
-const WidgetToggleButton = ({
-  isWidgetOpen,
-  agentData,
-  onClick,
-}: {
+type WidgetToggleButtonProps = {
   isWidgetOpen: boolean;
   agentData: AgentData | null;
   onClick: () => void;
-}) => (
+};
+
+const WidgetToggleButton = (props: WidgetToggleButtonProps) => (
   <button
     id="widget-toggle"
-    onClick={onClick}
-    style={{ display: isWidgetOpen ? "none" : "inline-block" }}
+    onClick={props.onClick}
+    style={{ display: props.isWidgetOpen ? "none" : "inline-block" }}
   >
     <img
       id="widget-toggle-img"
-      src={agentData?.avatarUrl}
-      alt={agentData?.displayName}
+      src={props.agentData?.avatarUrl}
+      alt={props.agentData?.displayName}
     />
   </button>
 );
 
-const WidgetContent = ({
-  isWidgetOpen,
-  isMinimized,
-  agentData,
-  barHeights,
-  onCalendlyClick,
-}: {
+type WidgetContentProps = {
   isWidgetOpen: boolean;
   isMinimized: boolean;
   agentData: AgentData | null;
   barHeights: BarHeights;
   onCalendlyClick: (e: MouseEvent) => void;
-}) => (
-  <div
-    id="widget-content"
-    style={{
-      transform: isWidgetOpen && !isMinimized ? "scale(1)" : "scale(0)",
-      opacity: isWidgetOpen && !isMinimized ? "1" : "0",
-      display: isWidgetOpen && !isMinimized ? "flex" : "none",
-    }}
-  >
-    <div id="widget-content-header">
-      <p class="name">{agentData?.displayName}</p>
-      <button id="book-appointment-button" onClick={onCalendlyClick}>
-        <CalendarIcon />
-      </button>
-    </div>
-    <img
-      src={agentData?.avatarUrl}
-      alt={agentData?.displayName}
-      id="avatar-image"
-    />
-    <div id="voice-animation">
-      <For each={barHeights}>
-        {(height, index) => (
-          <div class="bar" style={{ height: `${height}%` }}></div>
-        )}
-      </For>
-    </div>
-    <p id="powered-by-text">Powered by RepnAI</p>
-  </div>
-);
+};
 
-const FloatingButtons = ({
-  isWidgetOpen,
-  isMinimized,
-  minimizedBarHeights,
-  agentData,
-  onMinimize,
-  onClose,
-}: {
+const WidgetContent = (props: WidgetContentProps) => {
+  return (
+    <div
+      id="widget-content"
+      style={{
+        transform:
+          props.isWidgetOpen && !props.isMinimized ? "scale(1)" : "scale(0)",
+        opacity: props.isWidgetOpen && !props.isMinimized ? "1" : "0",
+        display: props.isWidgetOpen && !props.isMinimized ? "flex" : "none",
+      }}
+    >
+      <div id="widget-content-header">
+        <p class="name">{props.agentData?.displayName}</p>
+        <button id="book-appointment-button" onClick={props.onCalendlyClick}>
+          <CalendarIcon />
+        </button>
+      </div>
+      <img
+        src={props.agentData?.avatarUrl}
+        alt={props.agentData?.displayName}
+        id="avatar-image"
+      />
+      <div id="voice-animation">
+        <For each={props.barHeights}>
+          {(height, index) => (
+            <div class="bar" style={{ height: `${height}%` }}></div>
+          )}
+        </For>
+      </div>
+      <p id="powered-by-text">Powered by RepnAI</p>
+    </div>
+  );
+};
+
+type FloatingButtonsProps = {
   isWidgetOpen: boolean;
   isMinimized: boolean;
   minimizedBarHeights: BarHeights;
   agentData: AgentData | null;
   onMinimize: () => void;
   onClose: () => void;
-}) => (
+};
+
+const FloatingButtons = (props: FloatingButtonsProps) => (
   <div
     id="floating-buttons"
     style={{
-      transform: isWidgetOpen ? "scale(1)" : "scale(0)",
-      opacity: isWidgetOpen ? "1" : "0",
-      display: isWidgetOpen ? "flex" : "none",
+      transform: props.isWidgetOpen ? "scale(1)" : "scale(0)",
+      opacity: props.isWidgetOpen ? "1" : "0",
+      display: props.isWidgetOpen ? "flex" : "none",
     }}
   >
     <button
       id="minimize-button"
-      onClick={onMinimize}
+      onClick={props.onMinimize}
       style={{
-        width: isMinimized ? "150px" : "40px",
-        "justify-content": isMinimized ? "space-between" : "center",
-        "border-radius": isMinimized ? "20px" : "50%",
+        width: props.isMinimized ? "150px" : "40px",
+        "justify-content": props.isMinimized ? "space-between" : "center",
+        "border-radius": props.isMinimized ? "20px" : "50%",
       }}
     >
       <div
         id="minimized-speech-bubble"
-        style={{ display: isMinimized ? "flex" : "none" }}
+        style={{ display: props.isMinimized ? "flex" : "none" }}
       >
-        <For each={minimizedBarHeights}>
+        <For each={props.minimizedBarHeights}>
           {(height, index) => (
             <div class="minimized-bar" style={{ height: `${height}%` }}></div>
           )}
@@ -418,14 +409,14 @@ const FloatingButtons = ({
       </div>
       <p
         id="speaking-summary"
-        style={{ display: isMinimized ? "block" : "none" }}
+        style={{ display: props.isMinimized ? "block" : "none" }}
       >
-        {agentData?.displayName}
+        {props.agentData?.displayName}
       </p>
       <svg
         id="minimize-icon"
         style={{
-          transform: isMinimized ? "rotate(180deg)" : "rotate(0deg)",
+          transform: props.isMinimized ? "rotate(180deg)" : "rotate(0deg)",
         }}
         width="18"
         height="32"
@@ -442,7 +433,7 @@ const FloatingButtons = ({
         />
       </svg>
     </button>
-    <CloseButton onClick={onClose} />
+    <CloseButton onClick={props.onClose} />
   </div>
 );
 
@@ -465,7 +456,7 @@ const CalendarIcon = () => (
 );
 
 const CloseButton = ({ onClick }: { onClick: () => void }) => (
-  <button onClick={onClick}>
+  <button id="close-button" onClick={onClick}>
     <svg
       width="32"
       height="32"
