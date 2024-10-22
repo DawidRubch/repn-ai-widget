@@ -27,12 +27,10 @@ const styles = `
   animation-iteration-count: 2;
 }
 
-
 #widget-toggle:hover {
   cursor: pointer;
   transform: scale(1.05);
 }
-
 
 @keyframes pulse {
   0% { transform: scale(1); }

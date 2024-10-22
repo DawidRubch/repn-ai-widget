@@ -26,8 +26,11 @@ type AgentData = {
   position: "right" | "left" | "center";
 };
 
-const API_URL = import.meta.env.VITE_GLOBAL_API_URL;
-const WEBSOCKET_URL = "ws://localhost:33012414";
+const API_URL =
+  import.meta.env.VITE_GLOBAL_API_URL || "https://repn-voice-api.fly.dev";
+const WEBSOCKET_URL =
+  import.meta.env.VITE_GLOBAL_WEBSOCKET_URL ||
+  "wss://repn-voice-api.fly.dev/talk";
 
 type BarHeights = [number, number, number];
 

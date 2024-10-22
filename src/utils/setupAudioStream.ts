@@ -75,6 +75,8 @@ export const setupAudioStream = (params: AudioStreamParams) => {
 
 
                     audioElement.currentTime = 0;
+
+                    audioElement.pause();
                     queue = [];
                     if (sourceBuffer && !sourceBuffer.updating) sourceBuffer.abort();
                     mediaSource.endOfStream();
@@ -89,7 +91,6 @@ export const setupAudioStream = (params: AudioStreamParams) => {
                             appendNextBuffer();
                         };
                     };
-
                     break;
                 case "voiceActivityEnd":
                     console.log("voiceActivityEnd");

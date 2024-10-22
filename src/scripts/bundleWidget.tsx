@@ -13,6 +13,4 @@ function getInitialProps(): VoiceChatWidgetProps {
   };
 }
 
-import "./index.css";
-
 registerWebComponents();
