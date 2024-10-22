@@ -23,7 +23,7 @@ const styles = `
   width: 80px;
   height: 80px;
   overflow: hidden;
- box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
 
 #widget-toggle-img {
@@ -39,8 +39,8 @@ const styles = `
   margin-bottom: 50px;
   width: 200px;
   height: 350px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border: 1px solid #d1d5db;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  border: 1px solid #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -70,7 +70,7 @@ const styles = `
   border: none;
   cursor: pointer;
   border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
 }
 
 #avatar-image {
@@ -78,7 +78,7 @@ const styles = `
   height: 140px;
   object-fit: cover;
   border-radius: 50%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
   margin-bottom: 20px;
 }
 
@@ -90,7 +90,7 @@ const styles = `
   background-color: white;
   border-radius: 25px;
   padding: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
   width: 100%;
 }
 
@@ -130,7 +130,7 @@ const styles = `
   border: 1px solid black;
   cursor: pointer;
   border-radius: 50%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
   width: 40px;
   height: 40px;
   display: flex;
@@ -171,7 +171,7 @@ const styles = `
   border: 1px solid black;
   cursor: pointer;
   border-radius: 50%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
   width: 40px;
   height: 40px;
   display: flex;

@@ -9,7 +9,6 @@ import {
   Show,
 } from "solid-js";
 import styles from "./VoiceChatWidget.styles";
-import { updateBarHeights } from "../utils/updateBarHeights";
 import { setupAudioStream } from "../utils/setupAudioStream";
 import { blobToBase64 } from "../utils/blobToBase64";
 
@@ -28,7 +27,7 @@ type AgentData = {
 };
 
 const API_URL = import.meta.env.VITE_GLOBAL_API_URL;
-const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL;
+const WEBSOCKET_URL = "ws://dupa.com";
 
 type BarHeights = [number, number, number];
 
@@ -439,8 +438,8 @@ const FloatingButtons = (props: FloatingButtonsProps) => (
 
 const CalendarIcon = () => (
   <svg
-    width="40"
-    height="40"
+    width="30"
+    height="30"
     viewBox="0 0 50 48"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
