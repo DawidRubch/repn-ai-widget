@@ -7,7 +7,8 @@
     "build": "vite build",
     "serve": "vite preview",
     "bundle:widget": "rollup --config rollup.config.mjs",
-    "deploy:script": "wrangler r2 object put repn-ai-widget/widget.mjs --file ./dist/widget.mjs"
+    "deploy:script": "npm run bundle:widget && wrangler r2 object put repn-ai-widget/widget.mjs --file ./dist/widget.mjs",
+    "verify:deploy": "wrangler r2 object get repn-ai-widget/widget.mjs"
   },
   "license": "MIT",
   "devDependencies": {

@@ -18,24 +18,18 @@ export default {
   plugins: [
     replace({
       "process.env.NODE_ENV": JSON.stringify("production"),
+      "import.meta.env.VITE_GLOBAL_API_URL": JSON.stringify(
+        "https://repn-voice-api.fly.dev"
+      ),
+      "import.meta.env.VITE_WEBSOCKET_URL": JSON.stringify(
+        "wss://repn-voice-api.fly.dev/talk"
+      ),
     }),
     resolve({ extensions }),
     babel({
       exclude: "node_modules/**",
       presets: ["solid", "@babel/preset-typescript"],
       extensions,
-    }),
-    postcss({
-      plugins: [
-        autoprefixer(),
-        tailwindcss({
-          content: ["./src/**/*.tsx"],
-        }),
-      ],
-      extract: true,
-      modules: true,
-      minimize: true,
-      inject: true,
     }),
     terser({ output: { comments: false } }),
     {
