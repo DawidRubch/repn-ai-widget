@@ -27,7 +27,7 @@ type AgentData = {
 };
 
 const API_URL = import.meta.env.VITE_GLOBAL_API_URL;
-const WEBSOCKET_URL = "ws://dupa.com";
+const WEBSOCKET_URL = "ws://localhost:33012414";
 
 type BarHeights = [number, number, number];
 
@@ -216,6 +216,9 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
       <style>{styles}</style>
       <div id="voice-chat-widget">
+        <Show when={!isWidgetOpen()}>
+          <div class="status-indicator"></div>
+        </Show>
         <WidgetToggleButton
           isWidgetOpen={isWidgetOpen()}
           agentData={agentData()}

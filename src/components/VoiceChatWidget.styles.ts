@@ -11,7 +11,6 @@ const styles = `
 #widget-toggle {
   border: none;
   color: white;
-
   padding: 0;
   text-align: center;
   text-decoration: none;
@@ -24,6 +23,46 @@ const styles = `
   height: 80px;
   overflow: hidden;
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  animation: pulse 2s infinite;
+  animation-iteration-count: 2;
+}
+
+
+#widget-toggle:hover {
+  cursor: pointer;
+  transform: scale(1.05);
+}
+
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  background-color: #10B981; /* green for online */
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+  animation: showStatusAfterPulse 4s forwards;
+}
+
+@keyframes showStatusAfterPulse {
+  0%, 99% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+#widget-toggle:hover .status-indicator,
+#widget-toggle:active .status-indicator {
+  opacity: 0;
 }
 
 #widget-toggle-img {
@@ -34,11 +73,10 @@ const styles = `
 }
 
 #widget-content {
-  background: linear-gradient(to bottom, #f3f4f6, #f3f4f6, #3b82f6);
-  padding: 20px;
+  background: #E5F3FF;
+  padding: 10px;
   margin-bottom: 50px;
-  width: 200px;
-  height: 350px;
+  width: 150px;
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
   border: 1px solid #fff;
   display: flex;
@@ -55,13 +93,13 @@ const styles = `
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
 }
 
 #widget-content-header .name {
   color: #3b82f6;
   margin: 0;
-  font-size: 24px;
+  font-size: 18px;
 }
 
 #book-appointment-button {
@@ -74,45 +112,47 @@ const styles = `
 }
 
 #avatar-image {
-  width: 140px;
-  height: 140px;
+  width: 100px;
+  height: 100px;
   object-fit: cover;
   border-radius: 50%;
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 #voice-animation {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 50px;
+  height: 30px;
   background-color: white;
   border-radius: 25px;
   padding: 10px;
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
   width: 100%;
+  margin-bottom: 10px;
 }
 
 #voice-animation .bar {
-  background-color: #52467b;
+  background-color: #3b82f6;
   bottom: 1px;
-  height: 8px;
-  width: 8px;
+  height: 6px;
+  width: 6px;
   margin: 0 2px;
   border-radius: 5px;
   transition: all 0.3s ease-in-out;
-  max-height: 100%;
-  min-height: 8px;
+  min-height: 6px;
 }
 
 #powered-by-text {
-  color: white;
-  font-size: 14px;
+  color: #3b82f6;
+  font-size: 10px;
   text-align: center;
   margin-top: auto;
   margin-bottom: 0;
+  font-weight: 300;
 }
+
 
 #floating-buttons {
   position: absolute;
@@ -123,6 +163,7 @@ const styles = `
   transform: scale(0);
   opacity: 0;
 }
+
 
 #minimize-button {
   padding: 10px;
