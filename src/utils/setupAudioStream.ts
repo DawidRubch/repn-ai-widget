@@ -20,14 +20,15 @@ export const setupAudioStream = (params: AudioStreamParams) => {
     let audioCurrentTime = 0;
     let isPlaying = false;
     let inactivityTimeout: NodeJS.Timeout | null = null;
+    let checkAudioActivityInterval: NodeJS.Timeout | null = null;
 
     const updateAllBars = () => {
-        setBarHeights(updateBarHeights({ analyser, scaleFactorMultiplier: 1 }));
+        setBarHeights(updateBarHeights({ analyser, scaleFactorMultiplier: 2 }));
         setMinimizedBarHeights(updateBarHeights({ analyser, scaleFactorMultiplier: 0.2 }));
         requestAnimationFrame(updateAllBars);
     };
 
-    const checkAudioActivity = setInterval(() => {
+    checkAudioActivityInterval = setInterval(() => {
         if (audioElement.currentTime === 0) return;
 
         if (audioElement.currentTime === audioCurrentTime) {

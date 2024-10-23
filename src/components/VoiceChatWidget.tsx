@@ -29,9 +29,10 @@ type AgentData = {
 const getAPIUrls = () => {
   try {
     const API_URL =
-      import.meta.env.VITE_API_URL || "https://repn-voice-api.fly.dev";
+      import.meta.env.VITE_GLOBAL_API_URL || "https://repn-voice-api.fly.dev";
     const WEBSOCKET_URL =
-      import.meta.env.VITE_WEBSOCKET_URL || "wss://repn-voice-api.fly.dev/talk";
+      import.meta.env.VITE_GLOBAL_WEBSOCKET_URL ||
+      "wss://repn-voice-api.fly.dev/talk";
 
     return { API_URL, WEBSOCKET_URL };
   } catch (error) {
@@ -101,6 +102,8 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          sampleRate: 48000, // High sample rate for quality
+          sampleSize: 16,
         },
         video: false,
       });
