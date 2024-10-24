@@ -173,17 +173,18 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
     }
   };
 
-  onMount(() => {
-    createScriptLoader({
-      src: "https://assets.calendly.com/assets/external/widget.js",
-      async: true,
-    });
+  onMount(async () => {
+    const data = await fetchAgentData(props.agentId);
+    setAgentData(data);
+    setDataFetched(true);
+    showIntroMessage();
 
-    fetchAgentData(props.agentId).then((data) => {
-      setAgentData(data);
-      setDataFetched(true);
-      showIntroMessage();
-    });
+    if (data.calendlyUrl) {
+      createScriptLoader({
+        src: "https://assets.calendly.com/assets/external/widget.js",
+        async: true,
+      });
+    }
   });
 
   const showIntroMessage = () => {
@@ -528,6 +529,7 @@ const fetchAgentData = async (agentId: string) => {
     return data;
   } catch (error) {
     console.error("Error fetching agent data:", error);
+    throw error;
   }
 };
 
