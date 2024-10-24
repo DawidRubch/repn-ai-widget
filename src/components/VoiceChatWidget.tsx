@@ -330,60 +330,62 @@ type CalendlyDialogProps = {
 };
 
 const CalendlyDialog = (props: CalendlyDialogProps) => (
-  <dialog
-    open={props.isOpen}
-    onClose={props.onClose}
-    id="calendly-dialog"
-    style={{
-      position: "fixed",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      "z-index": "9999",
-      padding: "0",
-      border: "1px solid #000",
-      "border-radius": "8px",
-      "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
-      width: "auto",
-      height: "760px",
-    }}
-  >
-    <Show when={props.isOpen} fallback={<></>}>
-      <button
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          background: "#fff",
-          "border-radius": "50%",
-          width: "30px",
-          height: "30px",
-          display: "flex",
-          "align-items": "center",
-          "justify-content": "center",
-          border: "none",
-          cursor: "pointer",
-          "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
-        }}
-        onClick={props.onClose}
-      >
-        <span
+  <>
+    <dialog
+      open={props.isOpen}
+      onClose={props.onClose}
+      id="calendly-dialog"
+      style={{
+        position: "fixed",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        "z-index": "9999",
+        padding: "0",
+        border: "1px solid #000",
+        "border-radius": "8px",
+        "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
+        width: "auto",
+        height: "760px",
+      }}
+    >
+      <Show when={props.isOpen} fallback={<></>}>
+        <button
           style={{
-            "font-size": "16px",
-            color: "#333",
-            "line-height": 1,
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            background: "#fff",
+            "border-radius": "50%",
+            width: "30px",
+            height: "30px",
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            border: "none",
+            cursor: "pointer",
+            "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.1)",
           }}
+          onClick={props.onClose}
         >
-          ✕
-        </span>
-      </button>
+          <span
+            style={{
+              "font-size": "16px",
+              color: "#333",
+              "line-height": 1,
+            }}
+          >
+            ✕
+          </span>
+        </button>
 
-      <div
-        id="calendly-embed"
-        style={{ "min-width": "320px", height: "750px", width: "auto" }}
-      ></div>
-    </Show>
-  </dialog>
+        <div
+          id="calendly-embed"
+          style={{ "min-width": "320px", height: "750px", width: "auto" }}
+        ></div>
+      </Show>
+    </dialog>
+  </>
 );
 
 type WidgetToggleButtonProps = {
@@ -604,9 +606,14 @@ const initCalendlyWidget = () => {
     utm_medium: "voicechatwidget",
   };
   setTimeout(() => {
+    const shadowRoot =
+      document.getElementsByTagName("voice-chat-widget")[0].shadowRoot;
+
+    const calendlyEmbed = shadowRoot?.getElementById("calendly-embed");
+
     window.Calendly.initInlineWidget({
       url: "https://calendly.com/dawid-niegrebecki/meeting-with-dawid",
-      parentElement: document.getElementById("calendly-embed"),
+      parentElement: calendlyEmbed,
       utm,
     });
   }, 0);

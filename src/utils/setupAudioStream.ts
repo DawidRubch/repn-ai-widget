@@ -1,4 +1,3 @@
-import { onCleanup } from "solid-js";
 import { BarHeights, updateBarHeights } from "./updateBarHeights";
 
 type AudioStreamParams = {
