@@ -51,6 +51,10 @@ const styles = `
   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
   opacity: 0;
   visibility: hidden;
+
+
+  
+
 }
 
 #intro-message.show {

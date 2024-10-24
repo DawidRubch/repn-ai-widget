@@ -215,8 +215,11 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   });
 
   const showIntroMessage = () => {
-    const introMessageElement = document.getElementById("intro-message");
+    const rootElement =
+      document.getElementsByTagName("voice-chat-widget")[0].shadowRoot;
+    const introMessageElement = rootElement?.getElementById("intro-message");
 
+    console.log(introMessageElement);
     if (!introMessageElement || isWidgetOpen() || !agentData()?.introMessage)
       return;
 
