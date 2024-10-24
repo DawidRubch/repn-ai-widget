@@ -11,6 +11,7 @@ import {
 import styles from "./VoiceChatWidget.styles";
 import { setupAudioStream } from "../utils/setupAudioStream";
 import { blobToBase64 } from "../utils/blobToBase64";
+import { isIOSSafari } from "../utils/isIOSSafari";
 
 export enum AgentState {
   SPEAKING = "speaking",
@@ -174,6 +175,10 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   };
 
   onMount(async () => {
+    if (isIOSSafari()) {
+      return;
+    }
+
     const data = await fetchAgentData(props.agentId);
     setAgentData(data);
     setDataFetched(true);
@@ -250,7 +255,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   };
 
   return (
-    <Show when={dataFetched()} fallback={<></>}>
+    <Show when={dataFetched() && !isIOSSafari()} fallback={<></>}>
       <CalendlyDialog isOpen={isCalendlyOpen()} onClose={closeCalendly} />
 
       <style>{styles}</style>
