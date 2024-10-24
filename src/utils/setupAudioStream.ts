@@ -13,6 +13,8 @@ export const setupAudioStream = (params: AudioStreamParams) => {
     let mediaSource = new MediaSource();
     const audioElement = new Audio();
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    console.log(audioContext)
     const analyser = audioContext.createAnalyser();
     let sourceBuffer: SourceBuffer | null = null;
     let queue: ArrayBuffer[] = [];
@@ -38,7 +40,9 @@ export const setupAudioStream = (params: AudioStreamParams) => {
 
 
             inactivityTimeout = setTimeout(() => {
-                socket.send(JSON.stringify({ type: "inactivity" }));
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ type: "inactivity" }));
+                }
             }, 10000);
 
         } else {

@@ -3,10 +3,12 @@ import {
   createEffect,
   createSignal,
   For,
+  Match,
   on,
   onCleanup,
   onMount,
   Show,
+  Switch,
 } from "solid-js";
 import styles from "./VoiceChatWidget.styles";
 import { setupAudioStream } from "../utils/setupAudioStream";
@@ -52,6 +54,12 @@ export type VoiceChatWidgetProps = {
   agentId: string;
 };
 
+const MICROPHONE_STATE = {
+  WAITING: "waiting",
+  ALLOWED: "allowed",
+  DENIED: "denied",
+} as const;
+
 const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   const [agentData, setAgentData] = createSignal<AgentData | null>(null);
   const [isMinimized, setIsMinimized] = createSignal(false);
@@ -63,6 +71,9 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   const [dataFetched, setDataFetched] = createSignal(false);
   const [isCalendlyOpen, setIsCalendlyOpen] = createSignal(false);
   const [socketReady, setSocketReady] = createSignal(false);
+  const [microphoneState, setMicrophoneState] = createSignal<
+    (typeof MICROPHONE_STATE)[keyof typeof MICROPHONE_STATE]
+  >(MICROPHONE_STATE.WAITING);
 
   let mediaRecorder: MediaRecorder | null = null;
   let socket: WebSocket | null = null;
@@ -88,14 +99,25 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   );
 
   createEffect(
-    on(socketReady, () => {
-      if (socketReady()) {
-        startRecording();
+    on([socketReady, microphoneState], () => {
+      if (socketReady() && microphoneState() === MICROPHONE_STATE.ALLOWED) {
+        mediaRecorder.addEventListener("dataavailable", async (event) => {
+          if (
+            event.data.size > 0 &&
+            socket &&
+            socket.readyState === WebSocket.OPEN
+          ) {
+            const base64 = await blobToBase64(event.data);
+            socket.send(JSON.stringify({ type: "audioIn", data: base64 }));
+          }
+        });
+
+        mediaRecorder.start(500);
       }
     })
   );
 
-  const startRecording = async () => {
+  const setupMicrophone = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -111,26 +133,24 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
       mediaRecorder = new MediaRecorder(stream);
 
-      mediaRecorder.addEventListener("dataavailable", async (event) => {
-        if (
-          event.data.size > 0 &&
-          socket &&
-          socket.readyState === WebSocket.OPEN
-        ) {
-          const base64 = await blobToBase64(event.data);
-          socket.send(JSON.stringify({ type: "audioIn", data: base64 }));
-        }
-      });
-
-      mediaRecorder.start(500);
+      setMicrophoneState(MICROPHONE_STATE.ALLOWED);
     } catch (error) {
       console.error("Error accessing microphone:", error);
+      setMicrophoneState(MICROPHONE_STATE.DENIED);
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
       mediaRecorder.stop();
+
+      mediaRecorder.stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+
+      mediaRecorder.removeEventListener("dataavailable", () => {});
+      mediaRecorder = null;
+
       console.log("MediaRecorder stopped");
     }
   };
@@ -141,6 +161,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
 
     socket.onopen = () => {
       console.log("WebSocket connected");
+
       setupAudioStream({
         socket,
         setBarHeights,
@@ -162,6 +183,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   const disconnectWebSocket = () => {
     if (socket) {
       socket.close();
+      socket = null;
     }
   };
 
@@ -221,7 +243,13 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
   });
 
   const toggleWidget = () => {
+    if (isWidgetOpen()) {
+      closeWidget();
+      return;
+    }
+
     setIsWidgetOpen(true);
+    setupMicrophone();
     startConversation();
   };
 
@@ -278,6 +306,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
           agentData={agentData()}
           barHeights={barHeights()}
           onCalendlyClick={handleCalendlyClick}
+          microphoneState={microphoneState()}
         />
 
         <FloatingButtons
@@ -383,6 +412,7 @@ type WidgetContentProps = {
   agentData: AgentData | null;
   barHeights: BarHeights;
   onCalendlyClick: (e: MouseEvent) => void;
+  microphoneState: (typeof MICROPHONE_STATE)[keyof typeof MICROPHONE_STATE];
 };
 
 const WidgetContent = (props: WidgetContentProps) => {
@@ -398,22 +428,36 @@ const WidgetContent = (props: WidgetContentProps) => {
     >
       <div id="widget-content-header">
         <p class="name">{props.agentData?.displayName}</p>
-        <button id="book-appointment-button" onClick={props.onCalendlyClick}>
-          <CalendarIcon />
-        </button>
+        <Show when={props.agentData?.calendlyUrl}>
+          <button id="book-appointment-button" onClick={props.onCalendlyClick}>
+            <CalendarIcon />
+          </button>
+        </Show>
       </div>
       <img
         src={props.agentData?.avatarUrl}
         alt={props.agentData?.displayName}
         id="avatar-image"
       />
-      <div id="voice-animation">
-        <For each={props.barHeights}>
-          {(height, index) => (
-            <div class="bar" style={{ height: `${height}%` }}></div>
-          )}
-        </For>
-      </div>
+      <Switch>
+        <Match when={props.microphoneState === MICROPHONE_STATE.ALLOWED}>
+          <div id="voice-animation">
+            <For each={props.barHeights}>
+              {(height, index) => (
+                <div class="bar" style={{ height: `${height}%` }}></div>
+              )}
+            </For>
+          </div>
+        </Match>
+
+        <Match when={props.microphoneState === MICROPHONE_STATE.DENIED}>
+          <p>Microphone access denied. Please check your browser settings.</p>
+        </Match>
+
+        <Match when={props.microphoneState === MICROPHONE_STATE.WAITING}>
+          <p>Waiting for microphone access...</p>
+        </Match>
+      </Switch>
       <p id="powered-by-text">Powered by RepnAI</p>
     </div>
   );
