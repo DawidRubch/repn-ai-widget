@@ -451,11 +451,17 @@ const WidgetContent = (props: WidgetContentProps) => {
         </Match>
 
         <Match when={props.microphoneState === MICROPHONE_STATE.DENIED}>
-          <p>Microphone access denied. Please check your browser settings.</p>
+          <div id="voice-animation">
+            <p style={{ "font-size": "10px" }}>Microphone access denied.</p>
+          </div>
         </Match>
 
         <Match when={props.microphoneState === MICROPHONE_STATE.WAITING}>
-          <p>Waiting for microphone access...</p>
+          <div id="voice-animation">
+            <p style={{ "font-size": "10px" }}>
+              Waiting for microphone access.
+            </p>
+          </div>
         </Match>
       </Switch>
       <p id="powered-by-text">Powered by RepnAI</p>
