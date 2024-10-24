@@ -18,7 +18,7 @@ export default {
       "import.meta.env.VITE_GLOBAL_API_URL": JSON.stringify(
         "https://repn-voice-api.fly.dev"
       ),
-      "import.meta.env.VITE_WEBSOCKET_URL": JSON.stringify(
+      "import.meta.env.VITE_GLOBAL_WEBSOCKET_URL": JSON.stringify(
         "wss://repn-voice-api.fly.dev/talk"
       ),
     }),
@@ -43,7 +43,7 @@ export default {
               const scripts = document.getElementsByTagName('script');
               let agentId = 'default-agent-id';
               for (let i = 0; i < scripts.length; i++) {
-                if (scripts[i].getAttribute('data-script-id') === 'repnai-voice-chat-widget') {
+                if (scripts[i].getAttribute('data-agent-id') || (scripts[i].src && scripts[i].src.includes('repnai.co'))) {
                   agentId = scripts[i].getAttribute('data-agent-id') || agentId;
                   break;
                 }
