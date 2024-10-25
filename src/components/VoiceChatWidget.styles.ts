@@ -65,15 +65,15 @@ const styles = `
   visibility: hidden;
 }
 
-#intro-message .left {
+#intro-message.left {
   left: 0px;
 }
 
-#intro-message .right {
+#intro-message.right {
   right: 0px;
 }
 
-#intro-message .center {
+#intro-message.center {
   left: 50%;
   transform: translateX(-50%);
 }
