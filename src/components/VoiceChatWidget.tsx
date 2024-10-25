@@ -293,7 +293,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       <div id="voice-chat-widget" class={agentData()?.position || "right"}>
         <Show when={!isWidgetOpen()}>
           <div class="status-indicator"></div>
-          <div id="intro-message">
+          <div id="intro-message" class={agentData()?.position || "right"}>
             <p>{agentData()?.introMessage}</p>
           </div>
         </Show>
@@ -486,8 +486,13 @@ type FloatingButtonsProps = {
 const FloatingButtons = (props: FloatingButtonsProps) => (
   <div
     id="floating-buttons"
+    class={props.agentData?.position || "right"}
     style={{
-      transform: props.isWidgetOpen ? "scale(1)" : "scale(0)",
+      transform: props.isWidgetOpen
+        ? `scale(1) ${
+            props.agentData?.position === "center" ? "translateX(-50%)" : ""
+          }`
+        : "scale(0)",
       opacity: props.isWidgetOpen ? "1" : "0",
       display: props.isWidgetOpen ? "flex" : "none",
     }}

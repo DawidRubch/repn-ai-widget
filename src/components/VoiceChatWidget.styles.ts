@@ -59,14 +59,24 @@ const styles = `
   width: 300px;
   position: absolute;
   bottom: 100px;
-  right: 0px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
   opacity: 0;
   visibility: hidden;
 }
 
+#intro-message .left {
+  left: 0px;
+}
 
+#intro-message .right {
+  right: 0px;
+}
+
+#intro-message .center {
+  left: 50%;
+  transform: translateX(-50%);
+}
 
 #intro-message.show {
   opacity: 1;
@@ -205,11 +215,22 @@ const styles = `
 #floating-buttons {
   position: absolute;
   bottom: 5px;
-  right: 10px;
   gap: 10px;
   transition: all 0.3s ease-in-out;
   transform: scale(0);
   opacity: 0;
+}
+
+#floating-buttons.right {
+  right: 10px;
+}
+
+#floating-buttons.left {
+  left: 10px;
+}
+
+#floating-buttons.center {
+  left: calc(50%);
 }
 
 
