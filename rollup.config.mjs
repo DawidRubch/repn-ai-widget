@@ -16,10 +16,10 @@ export default {
     replace({
       "process.env.NODE_ENV": JSON.stringify("production"),
       "import.meta.env.VITE_GLOBAL_API_URL": JSON.stringify(
-        "https://repn-voice-api.fly.dev"
+        "https://api.repnai.co"
       ),
       "import.meta.env.VITE_GLOBAL_WEBSOCKET_URL": JSON.stringify(
-        "wss://repn-voice-api.fly.dev/talk"
+        "wss://api.repnai.co/talk"
       ),
     }),
     resolve({ extensions }),

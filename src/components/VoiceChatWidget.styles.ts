@@ -3,9 +3,22 @@ const styles = `
 #voice-chat-widget {
   position: fixed;
   bottom: 20px;
-  right: 20px;
   font-family: sans-serif;
   z-index: 10000;
+}
+
+
+#voice-chat-widget.right {
+  right: 20px;
+}
+
+#voice-chat-widget.left {
+  left: 20px;
+}
+
+#voice-chat-widget.center {
+  right: 50%;
+  transform: translateX(50%);
 }
 
 #widget-toggle {
@@ -51,11 +64,9 @@ const styles = `
   transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
   opacity: 0;
   visibility: hidden;
-
-
-  
-
 }
+
+
 
 #intro-message.show {
   opacity: 1;

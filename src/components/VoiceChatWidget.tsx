@@ -290,7 +290,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
       <CalendlyDialog isOpen={isCalendlyOpen()} onClose={closeCalendly} />
 
       <style>{styles}</style>
-      <div id="voice-chat-widget">
+      <div id="voice-chat-widget" class={agentData()?.position || "right"}>
         <Show when={!isWidgetOpen()}>
           <div class="status-indicator"></div>
           <div id="intro-message">
