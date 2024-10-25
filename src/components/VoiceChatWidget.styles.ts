@@ -130,7 +130,6 @@ const styles = `
 
 #widget-content {
   background: #E5F3FF;
-  padding: 10px;
   margin-bottom: 50px;
   width: 150px;
   box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
