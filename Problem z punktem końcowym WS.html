@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Play.ai WebSocket API Demo</title>
+  </head>
+  <body>
+    <script>
+      let isAgentSpeaking = false;
+
+      class DemoAudioPlayer {
+        constructor() {
+          log("Initiating audio player...");
+          this.queue = [];
+          this.playing = false;
+          this.audioElement = new Audio();
+
+          this.sourceBufferUpdateEnd = () => {
+            if (this.queue.length > 0 && !this.sourceBuffer.updating) {
+              try {
+                this.sourceBuffer.appendBuffer(this.queue.shift());
+              } catch (e) {
+                console.error("Error appending buffer:", e);
+              }
+            }
+          };
+
+          this.initMediaSource();
+          this.addAudioEventListeners();
+        }
+
+        initMediaSource() {
+          const mediaSource = new MediaSource();
+          this.audioElement.src = URL.createObjectURL(mediaSource);
+
+          mediaSource.addEventListener("sourceopen", () => {
+            this.sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+            this.sourceBuffer.addEventListener(
+              "updateend",
+              this.sourceBufferUpdateEnd
+            );
+          });
+
+          mediaSource.addEventListener("error", (e) => {
+            console.error("MediaSource error:", e);
+          });
+        }
+
+        addAudioEventListeners() {
+          this.audioElement.addEventListener("play", () => {
+            isAgentSpeaking = true;
+            log("Agent is speaking... (audioElement play event)");
+          });
+          this.audioElement.addEventListener("ended", () => {
+            isAgentSpeaking = false;
+            log("Agent stopped speaking. (audioElement ended event)");
+          });
+          this.audioElement.addEventListener("pause", () => {
+            isAgentSpeaking = false;
+            log("Agent stopped speaking. (audioElement pause event)");
+          });
+          this.audioElement.addEventListener("waiting", () => {
+            isAgentSpeaking = false;
+            log("Agent stopped speaking. (audioElement waiting event)");
+          });
+          this.audioElement.addEventListener("playing", () => {
+            isAgentSpeaking = true;
+            log("Agent is speaking... (audioElement playing event)");
+          });
+        }
+
+        enqueueAndPlayAudioChunk(base64Chunk) {
+          const audioArray = Uint8Array.from(atob(base64Chunk), (c) =>
+            c.charCodeAt(0)
+          );
+
+          if (!this.sourceBuffer.updating && this.queue.length === 0) {
+            try {
+              this.sourceBuffer.appendBuffer(audioArray);
+            } catch (e) {
+              console.error("Error appending buffer:", e);
+            }
+          } else {
+            this.queue.push(audioArray);
+          }
+
+          if (!this.playing) {
+            this.playing = true;
+            const playPromise = this.audioElement.play();
+            if (playPromise !== undefined) {
+              playPromise.catch((error) => {
+                console.error("Error starting playback:", error);
+              });
+            }
+          }
+        }
+
+        clearBufferAndQueue() {
+          this.audioElement.pause();
+          this.playing = false;
+          this.queue = [];
+          if (this.sourceBuffer) {
+            this.sourceBuffer.removeEventListener(
+              "updateend",
+              this.sourceBufferUpdateEnd
+            );
+          }
+          this.initMediaSource();
+        }
+
+        stopAudioPlayer() {
+          this.audioElement.pause();
+          this.playing = false;
+        }
+      }
+
+      class DemoMicrophoneRecorder {
+        STREAM_RECORD_INTERVAL_MS = 30; // record every 30ms
+        mediaRecorder;
+
+        async startMicrophoneAndSendAudioToWebSocket(webSocketInstance) {
+          log("Requesting microphone...");
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              channelCount: 1,
+              echoCancellation: true,
+              autoGainControl: true,
+              noiseSuppression: true,
+            },
+          });
+          this.mediaRecorder = new MediaRecorder(stream);
+          this.mediaRecorder.ondataavailable = async (event) => {
+            const base64Data = await DemoMicrophoneRecorder.blobToBase64(
+              event.data
+            );
+            // log(`Sending audio chunk... ${base64Data}`);
+            if (webSocketInstance.readyState === WebSocket.OPEN) {
+              const msg = { type: "audioIn", data: base64Data };
+              console.log("Sending WS message:", msg);
+              webSocketInstance.send(JSON.stringify(msg));
+            }
+          };
+          this.mediaRecorder.start(this.STREAM_RECORD_INTERVAL_MS);
+        }
+
+        stopMicrophone() {
+          this.mediaRecorder.stop();
+        }
+
+        static async blobToBase64(blob) {
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          return new Promise((resolve) => {
+            reader.onloadend = () => resolve(reader.result.split(",")[1]);
+          });
+        }
+      }
+
+      let socket;
+
+      function connectWebSocket(agentId, apiKey) {
+        log("Opening WebSocket connection...");
+        socket = new WebSocket(`wss://api.play.ai/v1/talk/${agentId}`);
+        const demoAudioPlayer = new DemoAudioPlayer();
+        const demoMicrophoneRecorder = new DemoMicrophoneRecorder();
+
+        socket.onopen = function () {
+          socket.send(
+            JSON.stringify({
+              type: "setup",
+              apiKey: apiKey,
+              outputFormat: "mp3",
+              utteranceEndThreshold: 1000,
+              // continueConversation: 'b3KGDvv1Eh7aR76aqjVH',
+            })
+          );
+          log("WebSocket connection opened.");
+          demoMicrophoneRecorder.startMicrophoneAndSendAudioToWebSocket(socket);
+        };
+
+        socket.onmessage = function (event) {
+          const eventData = JSON.parse(event.data);
+          if (eventData.type === "audioStream") {
+            const base64Data = eventData.data;
+            demoAudioPlayer.enqueueAndPlayAudioChunk(base64Data);
+          } else {
+            const { type, ...otherFields } = eventData;
+            if (type === "error") log(""); // add a line break before errors for clarity
+            log(
+              `Event: ${eventData.type} ${
+                Object.values(otherFields).length
+                  ? JSON.stringify(otherFields)
+                  : ""
+              }`
+            );
+            if (type === "voiceActivityStart") {
+              demoAudioPlayer.stopAudioPlayer();
+            } else if (type === "newAudioStream") {
+              demoAudioPlayer.clearBufferAndQueue();
+            }
+          }
+        };
+
+        socket.onclose = function (event) {
+          demoAudioPlayer.stopAudioPlayer();
+          demoMicrophoneRecorder.stopMicrophone();
+          if (event.wasClean) {
+            log(`WebSocket connection closed. Code: ${event.code}`);
+          } else {
+            log(
+              `WebSocket connection died. Code: ${event.code}. Reason: ${event.reason}. Check the console for more information.`
+            );
+            console.error(event);
+          }
+          restoreInputFields();
+          log(""); // add a line break after the WebSocket connection is closed
+        };
+
+        socket.onerror = function (event) {
+          log(`Error on WebSocket connection: ${event.message}`);
+          if (!event.wasClean) console.error(event);
+        };
+      }
+
+      function closeWebSocket() {
+        socket.close();
+      }
+
+      function restoreInputFields() {
+        document.getElementById("connect-button").disabled = false;
+        document.getElementById("agent-id").disabled = false;
+        document.getElementById("api-key").disabled = false;
+        document.getElementById("close-button").disabled = true;
+      }
+
+      function readInputFieldsAndConnectWebSocket() {
+        document.getElementById("connect-button").disabled = true;
+        document.getElementById("agent-id").disabled = true;
+        document.getElementById("api-key").disabled = true;
+        document.getElementById("close-button").disabled = false;
+        connectWebSocket(
+          document.getElementById("agent-id").value,
+          document.getElementById("api-key").value
+        );
+      }
+
+      function log(message) {
+        document.getElementById("out").textContent +=
+          (typeof message === "string" ? message : JSON.stringify(message)) +
+          "\n";
+        console.log(message);
+      }
+    </script>
+    <h1>Play.ai WebSocket API Demo</h1>
+    Fill in the fields below and click the "Connect WebSocket" button to start a
+    WebSocket connection with the Play.ai API. Please visit
+    <a href="https://docs.play.ai/api-reference/websocket" target="_blank"
+      >https://docs.play.ai/api-reference/websocket</a
+    >
+    for more details. <br /><br />
+    <label for="agent-id"
+      ><a href="https://play.ai/my-agents" target="_blank">Agent ID</a>:</label
+    >
+    <input type="text" id="agent-id" name="agent-id" size="60" /><br /><br />
+    <label for="api-key"
+      ><a href="https://play.ai/developers" target="_blank">API Key</a>:</label
+    >
+    <input type="text" id="api-key" name="api-key" size="60" /><br /><br />
+    <button onclick="readInputFieldsAndConnectWebSocket()" id="connect-button">
+      Connect WebSocket
+    </button>
+    <button onclick="closeWebSocket()" id="close-button" disabled>
+      Close WebSocket
+    </button>
+    <hr />
+    <pre
+      id="out"
+      style="
+        margin: 1rem 0;
+        max-height: 24rem;
+        width: 95%;
+        overflow: auto;
+        background-color: #d7dadc;
+        padding: 1rem;
+        white-space: pre-wrap;
+      "
+    ></pre>
+    <script>
+      // Keep input fields and localStorage in sync for convenience
+      document.getElementById("agent-id").value =
+        localStorage.getItem("agent-id");
+      document.getElementById("api-key").value =
+        localStorage.getItem("api-key");
+      document.getElementById("agent-id").addEventListener("input", () => {
+        localStorage.setItem(
+          "agent-id",
+          document.getElementById("agent-id").value
+        );
+      });
+      document.getElementById("api-key").addEventListener("input", () => {
+        localStorage.setItem(
+          "api-key",
+          document.getElementById("api-key").value
+        );
+      });
+    </script>
+  </body>
+</html>

@@ -197,7 +197,7 @@ const styles = `
   border-radius: 5px;
   transition: all 0.3s ease-in-out;
   min-height: 6px;
-  max-height: 18px;
+  max-height: 22px;
 
 }
 

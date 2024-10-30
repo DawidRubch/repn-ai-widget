@@ -112,7 +112,7 @@ const VoiceChatWidget = (props: VoiceChatWidgetProps) => {
           }
         });
 
-        mediaRecorder.start(500);
+        mediaRecorder.start(30);
       }
     })
   );
